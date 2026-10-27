@@ -44,3 +44,7 @@ temp/
 
 # PyCharm
 .idea/
+
+# Generated student data and credentials
+data/generated/
+data/uploads/
