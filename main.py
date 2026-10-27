@@ -178,6 +178,175 @@ async def send_registered_menu(message):
     )
     await message.reply_text("🚀 Tap below to open Ranchbot:", reply_markup=mini_app_keyboard())
 
+# ---------------------------------------------------------------------------
+# Admin Excel upload handlers
+# ---------------------------------------------------------------------------
+
+def is_admin(update: Update) -> bool:
+    """Allow uploads only from the configured Telegram admin in private chat."""
+    user = update.effective_user
+    chat = update.effective_chat
+
+    return (
+        user is not None
+        and chat is not None
+        and chat.type == "private"
+        and ADMIN_TG_ID != 0
+        and user.id == ADMIN_TG_ID
+    )
+
+
+async def upload_hemis_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message:
+        return
+
+    if not is_admin(update):
+        await message.reply_text("⛔ You are not authorized to upload files.")
+        return
+
+    context.user_data["awaiting_admin_upload"] = "hemis"
+
+    await message.reply_text(
+        "📄 HEMIS upload selected.\n\n"
+        "Please send the HEMIS Excel file as a document (.xlsx).\n"
+        "The first sheet must contain student login and password data."
+    )
+
+
+async def upload_contracts_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message:
+        return
+
+    if not is_admin(update):
+        await message.reply_text("⛔ You are not authorized to upload files.")
+        return
+
+    context.user_data["awaiting_admin_upload"] = "contracts"
+
+    await message.reply_text(
+        "📄 Contract upload selected.\n\n"
+        "Please send the contract Excel file as a document (.xlsx).\n"
+        "The first sheet must contain student ID, total amount, "
+        "paid amount, and payment percentage."
+    )
+
+
+async def receive_admin_excel(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message or not is_admin(update):
+        return
+
+    upload_type = context.user_data.get("awaiting_admin_upload")
+
+    # Do not process documents unless an upload command was issued first.
+    if upload_type not in {"hemis", "contracts"}:
+        return
+
+    document = message.document
+
+    if document is None:
+        return
+
+    filename = document.file_name or ""
+
+    if not filename.lower().endswith(".xlsx"):
+        await message.reply_text(
+            "❌ Please send an Excel file with the .xlsx extension."
+        )
+        return
+
+    max_bytes = settings.max_upload_mb * 1024 * 1024
+
+    if document.file_size is not None and document.file_size > max_bytes:
+        await message.reply_text(
+            f"❌ File is too large. Maximum size: "
+            f"{settings.max_upload_mb} MB."
+        )
+        return
+
+    await message.reply_text("⏳ Downloading and validating your Excel file...")
+
+    try:
+        telegram_file = await context.bot.get_file(document.file_id)
+        content = bytes(await telegram_file.download_as_bytearray())
+
+        if not content:
+            await message.reply_text("❌ The uploaded file is empty.")
+            return
+
+        if len(content) > max_bytes:
+            await message.reply_text(
+                f"❌ File exceeds the {settings.max_upload_mb} MB limit."
+            )
+            return
+
+        # Parse and validate BEFORE replacing the existing dataset.
+        if upload_type == "hemis":
+            dataset = await asyncio.to_thread(parse_credentials, content)
+            destination = GENERATED_DIR / "login.json"
+            dataset_name = "HEMIS credentials"
+
+        else:
+            dataset = await asyncio.to_thread(parse_contracts, content)
+            destination = GENERATED_DIR / "contract.json"
+            dataset_name = "contract payment data"
+
+        if not dataset:
+            await message.reply_text(
+                "❌ No valid records were found. "
+                "The existing dataset has not been changed."
+            )
+            return
+
+        # Atomically replace the dataset only after successful validation.
+        await asyncio.to_thread(atomic_write_json, destination, dataset)
+
+        context.user_data.pop("awaiting_admin_upload", None)
+
+        await message.reply_text(
+            f"✅ {dataset_name.capitalize()} uploaded successfully!\n\n"
+            f"📊 Records imported: {len(dataset)}\n"
+            f"📁 Dataset: {destination.name}"
+        )
+
+        logger.info(
+            "Admin %s uploaded %s records to %s",
+            update.effective_user.id,
+            len(dataset),
+            destination.name,
+        )
+
+    except WorkbookValidationError as exc:
+        logger.warning("Admin Excel validation failed: %s", exc)
+        await message.reply_text(
+            f"❌ Excel validation failed:\n{exc}\n\n"
+            "The existing dataset has not been changed. "
+            "Correct the file and send it again."
+        )
+
+    except Exception:
+        logger.exception("Admin Excel upload failed")
+        await message.reply_text(
+            "❌ Upload failed because of an internal error. "
+            "The server log contains more details. "
+            "Please try again."
+        )
+
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -360,10 +529,29 @@ async def lifespan(app: FastAPI):
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN is missing. Set it in .env before starting Ranchbot.")
 
+
     telegram_app = Application.builder().token(BOT_TOKEN).build()
+
+    # User registration
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(MessageHandler(filters.CONTACT, receive_contact))
-    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Admin Excel uploads
+    telegram_app.add_handler(
+        CommandHandler("upload_hemis", upload_hemis_command)
+    )
+    telegram_app.add_handler(
+        CommandHandler("upload_contracts", upload_contracts_command)
+    )
+    telegram_app.add_handler(
+        MessageHandler(filters.Document.ALL, receive_admin_excel)
+    )
+
+    # Existing text-message handling
+    telegram_app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+    )
+
     await telegram_app.initialize()
     await telegram_app.start()
     if telegram_app.updater is None:

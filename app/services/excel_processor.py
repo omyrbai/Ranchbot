@@ -87,7 +87,13 @@ def parse_contracts(file_bytes: bytes) -> dict[str, dict[str, int | float]]:
                 raise WorkbookValidationError(f"Row {row_num}: duplicate student ID {student_id}.")
             total = _decimal(total_value, row_num, "total contract amount")
             paid = _decimal(paid_value, row_num, "paid amount")
-            supplied_percentage = _decimal(percentage_value, row_num, "payment percentage")
+            supplied_percentage = _decimal(
+                percentage_value, row_num, "payment percentage"
+            )
+
+            # Excel percentage-formatted numeric cells store 25.12% as 0.2512.
+            if not isinstance(percentage_value, str) and supplied_percentage <= 1:
+                supplied_percentage *= Decimal("100")
             if total <= 0:
                 raise WorkbookValidationError(f"Row {row_num}: total contract amount must be greater than zero.")
             if paid < 0 or paid > total:
