@@ -96,8 +96,10 @@ def parse_contracts(file_bytes: bytes) -> dict[str, dict[str, int | float]]:
                 supplied_percentage *= Decimal("100")
             if total <= 0:
                 raise WorkbookValidationError(f"Row {row_num}: total contract amount must be greater than zero.")
-            if paid < 0 or paid > total:
-                raise WorkbookValidationError(f"Row {row_num}: paid amount must be between zero and total contract amount.")
+            if paid <= 0:
+                raise WorkbookValidationError(
+                    f"Row {row_num}: paid amount must be greater than zero."
+                )
             calculated_percentage = paid / total * Decimal("100")
             if abs(supplied_percentage - calculated_percentage) > Decimal("0.5"):
                 raise WorkbookValidationError(
