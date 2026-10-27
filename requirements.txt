@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+python-telegram-bot
+PyMySQL
+pandas
+openpyxl
+python-dotenv

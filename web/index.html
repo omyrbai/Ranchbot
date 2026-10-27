@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Ranchbot | Student Services</title>
+
+    <style>
+        :root {
+            --primary: #2457d6;
+            --primary-dark: #1944ad;
+            --background: #f4f7fc;
+            --surface: #ffffff;
+            --text: #172033;
+            --muted: #68748a;
+            --border: #e4eaf3;
+            --success: #15803d;
+            --danger: #b91c1c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: min(1100px, 92%);
+            margin: 0 auto;
+        }
+
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .navbar {
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 23px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .nav-link {
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .hero {
+            padding: 75px 0 55px;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 30px;
+            background: #e8efff;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        h1 {
+            max-width: 750px;
+            margin: 22px auto 15px;
+            font-size: clamp(32px, 5vw, 52px);
+            line-height: 1.15;
+        }
+
+        .hero p {
+            max-width: 620px;
+            margin: 0 auto 28px;
+            color: var(--muted);
+            font-size: 17px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 13px 23px;
+            border: none;
+            border-radius: 9px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: var(--primary-dark);
+        }
+
+        .services {
+            padding: 25px 0 70px;
+        }
+
+        .section-title {
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 30px;
+        }
+
+        .section-description {
+            margin: 0 auto 30px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .service-card {
+            padding: 27px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(30, 50, 90, 0.04);
+        }
+
+        .service-icon {
+            width: 52px;
+            height: 52px;
+            display: grid;
+            place-items: center;
+            background: #edf2ff;
+            border-radius: 12px;
+            font-size: 25px;
+        }
+
+        .service-card h3 {
+            margin: 17px 0 8px;
+            font-size: 20px;
+        }
+
+        .service-card p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .status-panel {
+            margin: 0 auto 60px;
+            padding: 18px 22px;
+            max-width: 500px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        #status {
+            font-weight: 700;
+        }
+
+        .status-ok {
+            color: var(--success);
+        }
+
+        .status-error {
+            color: var(--danger);
+        }
+
+        footer {
+            padding: 25px 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        @media (max-width: 760px) {
+            .service-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero {
+                padding-top: 50px;
+            }
+
+            .navbar {
+                min-height: 65px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="container navbar">
+        <div class="logo">Ranchbot</div>
+        <a class="nav-link" href="#services">Student Services</a>
+    </div>
+</header>
+
+<main>
+    <section class="hero">
+        <div class="container">
+            <span class="badge">UNIVERSITY STUDENT SERVICES</span>
+
+            <h1>Your university services in one place</h1>
+
+            <p>
+                Access HEMIS login information, check your contract
+                details, and report payment discrepancies through
+                our Telegram bot.
+            </p>
+
+            <a
+                class="button"
+                href="https://t.me/YOUR_BOT_USERNAME"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Open Telegram Bot
+            </a>
+        </div>
+    </section>
+
+    <section class="services" id="services">
+        <div class="container">
+            <h2 class="section-title">Our Services</h2>
+
+            <p class="section-description">
+                Choose a service through our Telegram bot.
+            </p>
+
+            <div class="service-grid">
+                <article class="service-card">
+                    <div class="service-icon">🔐</div>
+                    <h3>HEMIS Login</h3>
+                    <p>
+                        Look up your HEMIS username using your
+                        student ID.
+                    </p>
+                </article>
+
+                <article class="service-card">
+                    <div class="service-icon">💳</div>
+                    <h3>Contract Information</h3>
+                    <p>
+                        Check your contract amount, payments,
+                        and outstanding balance.
+                    </p>
+                </article>
+
+                <article class="service-card">
+                    <div class="service-icon">📝</div>
+                    <h3>Discrepancy Report</h3>
+                    <p>
+                        Report a payment discrepancy and provide
+                        supporting documents for review.
+                    </p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="container status-panel">
+        <div>Backend status</div>
+        <div id="status" aria-live="polite">Checking connection...</div>
+    </section>
+</main>
+
+<footer>
+    <div class="container">
+        Ranchbot — University Student Services
+    </div>
+</footer>
+
+<script>
+    async function checkBackend() {
+        const statusElement = document.getElementById("status");
+
+        try {
+            const response = await fetch("/api/health");
+
+            if (!response.ok) {
+                throw new Error("Backend returned an error.");
+            }
+
+            const data = await response.json();
+
+            if (data.status === "ok" && data.database === "connected") {
+                statusElement.textContent = "Connected";
+                statusElement.className = "status-ok";
+            } else {
+                statusElement.textContent = "Service unavailable";
+                statusElement.className = "status-error";
+            }
+        } catch (error) {
+            statusElement.textContent = "Unable to connect";
+            statusElement.className = "status-error";
+        }
+    }
+
+    checkBackend();
+</script>
+
+</body>
+</html>
