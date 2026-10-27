@@ -114,16 +114,12 @@ def parse_contracts(file_bytes: bytes) -> dict[str, dict[str, int | float]]:
                     f"Row {row_num}: paid amount must be greater than zero."
                 )
             calculated_percentage = paid / total * Decimal("100")
-            if abs(supplied_percentage - calculated_percentage) > Decimal("0.5"):
-                raise WorkbookValidationError(
-                    f"Row {row_num}: payment percentage ({supplied_percentage}%) does not match the paid/total ratio ({calculated_percentage:.2f}%)."
-                )
             remaining = total - paid
             result[student_id] = {
                 "total_amount": _number(total),
                 "paid_amount": _number(paid),
                 "remaining_amount": _number(remaining),
-                "payment_percentage": round(float(calculated_percentage), 2),
+                "payment_percentage": float(supplied_percentage),
             }
     finally:
         wb.close()
