@@ -158,13 +158,6 @@ def registration_keyboard():
     )
 
 
-def main_menu_keyboard():
-    return ReplyKeyboardMarkup(
-        [["🔐 HEMIS Login"], ["💳 Contract"], ["ℹ️ Help"]],
-        resize_keyboard=True,
-    )
-
-
 def contract_menu_keyboard():
     return ReplyKeyboardMarkup(
         [["🔎 Find"], ["📝 Discrepancy Report"], ["⬅️ Main Menu"]],
@@ -181,9 +174,9 @@ def mini_app_keyboard():
 async def send_registered_menu(message):
     await message.reply_text(
         "✅ Your phone number is registered. Open the Mini App to use student services:",
-        reply_markup=mini_app_keyboard(),
+        reply_markup=ReplyKeyboardRemove(),
     )
-    await message.reply_text("Or choose a bot service:", reply_markup=main_menu_keyboard())
+    await message.reply_text("🚀 Tap below to open Ranchbot:", reply_markup=mini_app_keyboard())
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
