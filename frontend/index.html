@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ranchbot — Student Services</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:#f4f6fa;--ink:#192235;--muted:#778196;--line:#e5e9f0;--blue:#2868d9;--blue-soft:#eaf1ff;--green:#168b63;--green-soft:#e7f7ef;--orange-soft:#fff1df;--purple-soft:#f0eaff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}button,input,textarea{font:inherit}button{cursor:pointer}.app{max-width:440px;min-height:100vh;margin:auto;padding:20px 17px 96px}
@@ -15,10 +16,11 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .tip{display:flex;gap:11px;background:white;border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:20px}.tip strong{font-size:12px;display:block;margin-bottom:4px}.tip p{font-size:11px;margin:0}
 .screen{display:none}.screen.active{display:block}.back{border:0;background:transparent;color:var(--blue);font-weight:750;padding:0;margin:3px 0 22px}.intro{margin:8px 0 0}.panel{background:white;border:1px solid var(--line);border-radius:19px;padding:18px;margin-top:19px}.panel h2{margin-bottom:9px}.fieldlabel{display:block;font-size:12px;font-weight:750;margin:16px 0 8px}.fieldlabel:first-child{margin-top:0}input[type=text],input[type=tel],textarea{width:100%;padding:13px 12px;border:1px solid #d8dfeb;border-radius:12px;background:#fff;outline:none;color:var(--ink)}textarea{min-height:90px;resize:vertical}input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}.primary{width:100%;border:0;border-radius:12px;background:var(--blue);color:white;font-weight:750;padding:13px 15px;margin-top:16px}.secondary{width:100%;border:1px solid #dce3ee;border-radius:12px;background:white;color:var(--ink);font-weight:700;padding:12px 14px;margin-top:10px}.note{font-size:12px;line-height:1.55;color:var(--muted);margin:12px 0 0}.info{background:#eef5ff;border:1px solid #dce9ff;border-radius:14px;padding:14px;font-size:13px;line-height:1.55;color:#354762;margin-top:16px}.steps{margin:12px 0 0;padding-left:20px;color:#47536a;font-size:13px;line-height:1.7}.uploadrow{border:1px dashed #cbd5e4;border-radius:14px;padding:13px;margin-top:11px;background:#fbfcff}.uploadrow label{display:block;font-size:12px;font-weight:750;margin-bottom:9px}.uploadrow input{width:100%;font-size:12px;color:var(--muted)}.filehint{font-size:11px;color:var(--muted);margin-top:7px;overflow-wrap:anywhere}.statusbox{background:#f7f9fd;border-radius:12px;padding:12px;font-size:12px;line-height:1.5;color:var(--muted);margin-top:13px}.bottom{position:fixed;z-index:5;bottom:0;left:50%;transform:translateX(-50%);width:min(440px,100%);display:grid;grid-template-columns:repeat(3,1fr);background:#fffffffa;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));backdrop-filter:blur(14px)}.nav{border:0;background:transparent;color:#8791a5;display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px;font-size:10px}.nav span:first-child{font-size:19px}.nav.active{color:var(--blue);font-weight:750}
 .recovery-shot{width:100%;display:block;border:1px solid var(--line);border-radius:12px;margin:14px 0 4px}.phone-field{display:flex;align-items:stretch;border:1px solid #d8dfeb;border-radius:12px;overflow:hidden;background:white}.phone-prefix{display:flex;align-items:center;padding:0 12px;background:#f0f3f9;border-right:1px solid #d8dfeb;font-weight:750;color:#354762}.phone-field input{border:0!important;box-shadow:none!important;border-radius:0!important;min-width:0}.success{display:none;background:#e7f7ef;border:1px solid #b9e8d0;color:#126b4b;border-radius:14px;padding:14px;font-size:13px;line-height:1.5;margin-top:15px}.success.show{display:block}
+#auth-gate{max-width:440px;margin:12vh auto 0;padding:28px 22px;text-align:center}#auth-gate h1{font-size:24px;margin-bottom:12px}#auth-gate p{line-height:1.6}.app{visibility:hidden}body.auth-ready .app{visibility:visible}body.auth-denied .app{display:none}
 @media(min-width:600px){body{padding:22px 0}.app{min-height:calc(100vh - 44px)}.bottom{bottom:22px;border:1px solid var(--line);border-radius:0 0 22px 22px}}
 </style>
 </head>
-<body><main class="app">
+<body><section id="auth-gate" role="status" aria-live="polite"><div style="font-size:38px;margin-bottom:12px">🔐</div><h1>Checking access…</h1><p>Please wait while Ranchbot verifies your Telegram registration.</p></section><main class="app">
 <header><div class="brand"><div class="logo">R</div><div><div class="brandname">Ranchbot</div><div class="subtitle">Student services</div></div></div><div class="avatar">S</div></header>
 <section class="screen active" id="home">
 <div class="eyebrow">Student self-service</div><h1>Hello there 👋</h1><p class="intro">Choose what you need help with today.</p>
@@ -43,14 +45,61 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <nav class="bottom" aria-label="Main navigation"><button class="nav active" data-go="home"><span>⌂</span><span>Home</span></button><button class="nav" data-go="hemis"><span>🔐</span><span>HEMIS</span></button><button class="nav" data-go="contract"><span>▤</span><span>Contract</span></button></nav>
 </main>
 <script>
+const authGate = document.getElementById('auth-gate');
+const telegram = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+const telegramInitData = telegram ? telegram.initData : '';
+function showAuthGate(title, message) {
+  document.body.classList.add('auth-denied');
+  authGate.innerHTML = '<div style="font-size:38px;margin-bottom:12px">🔐</div><h1></h1><p></p>';
+  authGate.querySelector('h1').textContent = title;
+  authGate.querySelector('p').textContent = message;
+}
+async function verifyAccess() {
+  if (!telegram || !telegramInitData) {
+    showAuthGate('Open Ranchbot in Telegram', 'To protect student information, this Mini App can only be opened from the Ranchbot bot after you share your own phone number.');
+    return;
+  }
+  try {
+    telegram.ready();
+    telegram.expand();
+    const response = await fetch('/api/auth/me', {headers: {'X-Telegram-Init-Data': telegramInitData}});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok || result.phone_verified !== true) {
+      showAuthGate('Registration required', result.detail || 'Return to the Ranchbot bot and share your own phone number first.');
+      return;
+    }
+    document.body.classList.add('auth-ready');
+    authGate.style.display = 'none';
+  } catch (error) {
+    showAuthGate('Could not verify access', 'Please check your internet connection and reopen the Mini App from the Ranchbot bot.');
+  }
+}
+verifyAccess();
+async function apiGet(path) {
+  if (!telegramInitData) throw new Error('Open this Mini App from the Ranchbot bot.');
+  const response = await fetch(path, {headers: {'X-Telegram-Init-Data': telegramInitData}});
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.detail || 'Request failed. Please try again.');
+  return payload;
+}
 const screens=[...document.querySelectorAll('.screen')],nav=[...document.querySelectorAll('.nav')];
 function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')));window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.go)));
 function openHemis(){window.open('https://student.hemis.uz/','_blank','noopener,noreferrer')}
 document.getElementById('home-open-hemis').addEventListener('click',openHemis);document.getElementById('open-recovery').addEventListener('click',openHemis);
-document.getElementById('credentials-form').addEventListener('submit',e=>{e.preventDefault();document.getElementById('credentials-msg').textContent='Student ID entered. The login credentials search will work when the dataset is connected.'});
-document.getElementById('find-form').addEventListener('submit',e=>{e.preventDefault();document.getElementById('find-msg').textContent='Student ID entered. Live payment lookup will be connected to the backend.'});
-document.getElementById('report-form').addEventListener('submit',e=>{e.preventDefault();document.getElementById('report-msg').textContent='Required fields and attachments are selected. Files have not been uploaded or sent.'});
+document.getElementById('credentials-form').addEventListener('submit', async e=>{
+  e.preventDefault(); const msg=document.getElementById('credentials-msg'); const id=document.getElementById('hemis-id').value.trim().toUpperCase();
+  msg.textContent='Searching…';
+  try { const data=await apiGet('/api/hemis/credentials/'+encodeURIComponent(id)); msg.textContent='Login: '+data.login+'\nPassword: '+data.password; msg.style.whiteSpace='pre-line'; }
+  catch(error){msg.textContent=error.message;}
+});
+document.getElementById('find-form').addEventListener('submit', async e=>{
+  e.preventDefault(); const msg=document.getElementById('find-msg'); const id=document.getElementById('student-id').value.trim().toUpperCase();
+  msg.textContent='Searching…';
+  try { const data=await apiGet('/api/contracts/'+encodeURIComponent(id)); msg.style.whiteSpace='pre-line'; msg.textContent='Total contract: '+data.total_amount+'\nPaid: '+data.paid_amount+'\nRemaining: '+data.remaining_amount+'\nPayment: '+data.payment_percentage+'%'; }
+  catch(error){msg.textContent=error.message;}
+});
+document.getElementById('report-form').addEventListener('submit',e=>{e.preventDefault();document.getElementById('report-msg').textContent='The report submission endpoint is not implemented yet. Your files have not been uploaded or sent.'});
 const phoneInput=document.getElementById('phone-local');
 function formatUzPhone(value){
   const digits=value.replace(/\D/g,'').slice(0,9);

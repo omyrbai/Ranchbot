@@ -1,19 +1,30 @@
+from __future__ import annotations
+
 import asyncio
+import hashlib
+import hmac
+import json
 import logging
 import os
+import re
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from dotenv import load_dotenv
+from urllib.parse import parse_qsl
 
 import pymysql
 import uvicorn
-from fastapi import FastAPI
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     Update,
+    WebAppInfo,
 )
 from telegram.ext import (
     Application,
@@ -23,36 +34,50 @@ from telegram.ext import (
     filters,
 )
 
-# --------------------------------------------------
-# CONFIGURATION
-# --------------------------------------------------
+from app.config import FRONTEND_DIR, GENERATED_DIR, settings
+from app.services.dataset_store import atomic_write_json, load_json
+from app.services.excel_processor import (
+    WorkbookValidationError,
+    parse_contracts,
+    parse_credentials,
+)
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
-WEB_DIR = BASE_DIR / "web"
-INDEX_FILE = WEB_DIR / "index.html"
+INDEX_FILE = FRONTEND_DIR / "index.html"
 load_dotenv(BASE_DIR / ".env")
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 ADMIN_TG_ID = int(os.getenv("ADMIN_TG_ID", "0"))
-
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", "3306"))
 DB_NAME = os.getenv("DB_NAME", "ranchbot_db")
 DB_USER = os.getenv("DB_USER", "ranchbot_user")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+WEB_APP_URL = os.getenv("WEB_APP_URL", "https://regofis.shabyte.uz").strip().rstrip("/")
+TELEGRAM_INIT_DATA_MAX_AGE_SECONDS = int(
+    os.getenv("TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "86400")
+)
+STUDENT_ID_RE = re.compile(r"^[A-Z]{2}\d{7}$")
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ranchbot")
+GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
-# --------------------------------------------------
-# DATABASE
-# --------------------------------------------------
+# ---------------------------------------------------------------------------
+# Database: reuse ranchbot_db.users; do not create a second users table.
+# ---------------------------------------------------------------------------
 
 
 def get_db_connection():
+    if not DB_PASSWORD:
+        raise RuntimeError("DB_PASSWORD is missing from .env")
     return pymysql.connect(
         host=DB_HOST,
         port=DB_PORT,
@@ -67,8 +92,8 @@ def get_db_connection():
 
 
 def initialize_database():
+    """Check the existing users table; create it only if it does not exist."""
     connection = get_db_connection()
-
     try:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -78,24 +103,28 @@ def initialize_database():
                     tgid BIGINT NOT NULL UNIQUE,
                     phone VARCHAR(20) NOT NULL,
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-                ENGINE=InnoDB
-                DEFAULT CHARSET=utf8mb4
-                COLLATE=utf8mb4_unicode_ci
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                  COLLATE=utf8mb4_unicode_ci
                 """
             )
+            cursor.execute("SHOW COLUMNS FROM users")
+            columns = {row["Field"] for row in cursor.fetchall()}
+            required = {"tgid", "phone"}
+            if not required.issubset(columns):
+                raise RuntimeError(
+                    "The existing users table must contain tgid and phone columns. "
+                    f"Found columns: {', '.join(sorted(columns))}"
+                )
     finally:
         connection.close()
 
 
 def get_registered_user(tgid: int):
     connection = get_db_connection()
-
     try:
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT user_id, tgid, phone FROM users WHERE tgid = %s",
-                (tgid,),
+                "SELECT tgid, phone FROM users WHERE tgid = %s LIMIT 1", (tgid,)
             )
             return cursor.fetchone()
     finally:
@@ -104,13 +133,11 @@ def get_registered_user(tgid: int):
 
 def register_user(tgid: int, phone: str):
     connection = get_db_connection()
-
     try:
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO users (tgid, phone)
-                VALUES (%s, %s)
+                INSERT INTO users (tgid, phone) VALUES (%s, %s)
                 ON DUPLICATE KEY UPDATE phone = VALUES(phone)
                 """,
                 (tgid, phone),
@@ -118,15 +145,14 @@ def register_user(tgid: int, phone: str):
     finally:
         connection.close()
 
-
-# --------------------------------------------------
-# TELEGRAM KEYBOARDS
-# --------------------------------------------------
+# ---------------------------------------------------------------------------
+# Telegram keyboards and handlers
+# ---------------------------------------------------------------------------
 
 
 def registration_keyboard():
     return ReplyKeyboardMarkup(
-        [[KeyboardButton("📱 Share phone number", request_contact=True)]],
+        [[KeyboardButton("📱 Share my phone number", request_contact=True)]],
         resize_keyboard=True,
         one_time_keyboard=True,
     )
@@ -134,121 +160,94 @@ def registration_keyboard():
 
 def main_menu_keyboard():
     return ReplyKeyboardMarkup(
-        [
-            ["🔐 HEMIS Login"],
-            ["💳 Contract"],
-            ["ℹ️ Help"],
-        ],
+        [["🔐 HEMIS Login"], ["💳 Contract"], ["ℹ️ Help"]],
         resize_keyboard=True,
     )
 
 
 def contract_menu_keyboard():
     return ReplyKeyboardMarkup(
-        [
-            ["🔎 Find"],
-            ["📝 Discrepancy Report"],
-            ["⬅️ Main Menu"],
-        ],
+        [["🔎 Find"], ["📝 Discrepancy Report"], ["⬅️ Main Menu"]],
         resize_keyboard=True,
     )
 
 
-# --------------------------------------------------
-# TELEGRAM HANDLERS
-# --------------------------------------------------
+def mini_app_keyboard():
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🚀 Open Ranchbot", web_app=WebAppInfo(url=WEB_APP_URL))]]
+    )
+
+
+async def send_registered_menu(message):
+    await message.reply_text(
+        "✅ Your phone number is registered. Open the Mini App to use student services:",
+        reply_markup=mini_app_keyboard(),
+    )
+    await message.reply_text("Or choose a bot service:", reply_markup=main_menu_keyboard())
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Require registration before allowing bot services."""
-
     user = update.effective_user
-    if not user or not update.message:
+    message = update.effective_message
+    if not user or not message:
         return
-
     try:
-        registered_user = await asyncio.to_thread(
-            get_registered_user, user.id
-        )
+        registered_user = await asyncio.to_thread(get_registered_user, user.id)
     except Exception:
         logger.exception("Database error while checking registration")
-        await update.message.reply_text(
-            "The service is temporarily unavailable. Please try again later."
-        )
+        await message.reply_text("The service is temporarily unavailable. Please try again later.")
         return
-
-    if registered_user:
-        await update.message.reply_text(
-            "Welcome! Choose a service:",
-            reply_markup=main_menu_keyboard(),
-        )
+    if registered_user and registered_user.get("phone"):
+        await send_registered_menu(message)
     else:
-        await update.message.reply_text(
-            "To use the bot, please register by sharing your phone number "
-            "using the button below.",
+        await message.reply_text(
+            "Welcome to Ranchbot! To unlock the Mini App and student services, "
+            "please share your own phone number using the button below.",
             reply_markup=registration_keyboard(),
         )
 
 
-async def receive_contact(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
-    """Accept only the contact belonging to the current Telegram user."""
-
+async def receive_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    message = update.message
-
+    message = update.effective_message
     if not user or not message or not message.contact:
         return
 
+    # Telegram's request_contact button should send the sender's own contact.
     if message.contact.user_id != user.id:
         await message.reply_text(
-            "Please share your own phone number using the button below.",
+            "Please use the button to share your own phone number, not someone else's.",
             reply_markup=registration_keyboard(),
         )
         return
 
     phone = message.contact.phone_number.strip()
+    if not phone:
+        await message.reply_text("Telegram did not provide a phone number. Please try again.", reply_markup=registration_keyboard())
+        return
 
     try:
         await asyncio.to_thread(register_user, user.id, phone)
     except Exception:
         logger.exception("Could not register user")
-        await message.reply_text(
-            "Registration failed temporarily. Please try again later.",
-            reply_markup=registration_keyboard(),
-        )
+        await message.reply_text("Registration failed temporarily. Please try again later.", reply_markup=registration_keyboard())
         return
 
-    await message.reply_text(
-        "Registration successful! Choose a service:",
-        reply_markup=main_menu_keyboard(),
-    )
+    await send_registered_menu(message)
 
 
-async def handle_message(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
-    """Handle menu buttons, blocking all services for unregistered users."""
-
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    message = update.message
-
+    message = update.effective_message
     if not user or not message or not message.text:
         return
-
     try:
-        registered_user = await asyncio.to_thread(
-            get_registered_user, user.id
-        )
+        registered_user = await asyncio.to_thread(get_registered_user, user.id)
     except Exception:
         logger.exception("Database error while checking user")
-        await message.reply_text(
-            "The service is temporarily unavailable. Please try again later."
-        )
+        await message.reply_text("The service is temporarily unavailable. Please try again later.")
         return
-
-    if not registered_user:
+    if not registered_user or not registered_user.get("phone"):
         await message.reply_text(
             "Please register first by sharing your own phone number.",
             reply_markup=registration_keyboard(),
@@ -256,77 +255,107 @@ async def handle_message(
         return
 
     text = message.text.strip()
-
     if text == "🔐 HEMIS Login":
         context.user_data["awaiting_login_id"] = True
-        await message.reply_text(
-            "Enter your student ID (for example, AB1234567):",
-            reply_markup=ReplyKeyboardRemove(),
-        )
-
+        await message.reply_text("Enter your student ID (for example, AB1234567):", reply_markup=ReplyKeyboardRemove())
     elif context.user_data.get("awaiting_login_id"):
         context.user_data.pop("awaiting_login_id", None)
-
-        # HEMIS dataset lookup will be added next.
-        await message.reply_text(
-            "HEMIS lookup is not connected yet. We will add the dataset "
-            "lookup next.",
-            reply_markup=main_menu_keyboard(),
-        )
-
+        student_id = text.upper()
+        if not STUDENT_ID_RE.fullmatch(student_id):
+            await message.reply_text("Student ID must be two English letters followed by seven digits.", reply_markup=main_menu_keyboard())
+        else:
+            dataset = load_json(GENERATED_DIR / "login.json")
+            record = dataset.get(student_id) if dataset else None
+            if record:
+                await message.reply_text(f"Login: {record['login']}\nPassword: {record['password']}", reply_markup=main_menu_keyboard())
+            else:
+                await message.reply_text("No HEMIS record was found for that student ID.", reply_markup=main_menu_keyboard())
     elif text == "💳 Contract":
-        await message.reply_text(
-            "Choose a contract service:",
-            reply_markup=contract_menu_keyboard(),
-        )
-
+        await message.reply_text("Choose a contract service:", reply_markup=contract_menu_keyboard())
     elif text == "🔎 Find":
         context.user_data["awaiting_contract_id"] = True
-        await message.reply_text(
-            "Enter your student ID:",
-            reply_markup=ReplyKeyboardRemove(),
-        )
-
+        await message.reply_text("Enter your student ID:", reply_markup=ReplyKeyboardRemove())
     elif context.user_data.get("awaiting_contract_id"):
         context.user_data.pop("awaiting_contract_id", None)
-
-        # Contract dataset lookup will be added next.
-        await message.reply_text(
-            "Contract lookup is not connected yet. We will add the dataset "
-            "lookup next.",
-            reply_markup=main_menu_keyboard(),
-        )
-
+        student_id = text.upper()
+        if not STUDENT_ID_RE.fullmatch(student_id):
+            await message.reply_text("Student ID must be two English letters followed by seven digits.", reply_markup=main_menu_keyboard())
+        else:
+            dataset = load_json(GENERATED_DIR / "contract.json")
+            record = dataset.get(student_id) if dataset else None
+            if record:
+                await message.reply_text(
+                    f"Total: {record['total_amount']}\nPaid: {record['paid_amount']}\n"
+                    f"Remaining: {record['remaining_amount']}\nPaid: {record['payment_percentage']}%",
+                    reply_markup=main_menu_keyboard(),
+                )
+            else:
+                await message.reply_text("No contract record was found for that student ID.", reply_markup=main_menu_keyboard())
     elif text == "📝 Discrepancy Report":
-        await message.reply_text(
-            "Discrepancy reporting will be added next.",
-            reply_markup=main_menu_keyboard(),
-        )
-
+        await message.reply_text("Please open the Ranchbot Mini App to continue with student services.", reply_markup=mini_app_keyboard())
     elif text == "⬅️ Main Menu":
-        await message.reply_text(
-            "Main menu:",
-            reply_markup=main_menu_keyboard(),
-        )
-
+        await send_registered_menu(message)
     elif text == "ℹ️ Help":
-        await message.reply_text(
-            "Use HEMIS Login to look up login information, Contract to "
-            "check contract details, or Discrepancy Report to report "
-            "an issue.",
-            reply_markup=main_menu_keyboard(),
-        )
-
+        await message.reply_text("Use HEMIS Login to look up credentials, Contract to check payment details, or open the Mini App for the full interface.", reply_markup=main_menu_keyboard())
     else:
-        await message.reply_text(
-            "Please choose an option from the menu.",
-            reply_markup=main_menu_keyboard(),
-        )
+        await message.reply_text("Please choose an option from the menu.", reply_markup=main_menu_keyboard())
+
+# ---------------------------------------------------------------------------
+# Telegram Mini App initData authentication
+# ---------------------------------------------------------------------------
 
 
-# --------------------------------------------------
-# FASTAPI WEB BACKEND
-# --------------------------------------------------
+def validate_telegram_init_data(init_data: str) -> dict:
+    if not BOT_TOKEN:
+        raise HTTPException(status_code=503, detail="Telegram authentication is not configured.")
+    if not init_data or len(init_data) > 8192:
+        raise HTTPException(status_code=401, detail="Missing or invalid Telegram authentication data.")
+
+    try:
+        pairs = parse_qsl(init_data, keep_blank_values=True, strict_parsing=True)
+        data = dict(pairs)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Malformed Telegram authentication data.")
+
+    received_hash = data.pop("hash", None)
+    if not received_hash or "auth_date" not in data or "user" not in data:
+        raise HTTPException(status_code=401, detail="Incomplete Telegram authentication data.")
+
+    data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(data.items()))
+    secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode("utf-8"), hashlib.sha256).digest()
+    calculated_hash = hmac.new(secret_key, data_check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calculated_hash, received_hash):
+        raise HTTPException(status_code=401, detail="Telegram authentication could not be verified.")
+
+    try:
+        auth_date = int(data["auth_date"])
+        telegram_user = json.loads(data["user"])
+        telegram_user_id = int(telegram_user["id"])
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+        raise HTTPException(status_code=401, detail="Invalid Telegram user data.")
+
+    now = int(time.time())
+    if auth_date > now + 60 or now - auth_date > TELEGRAM_INIT_DATA_MAX_AGE_SECONDS:
+        raise HTTPException(status_code=401, detail="Telegram session expired. Close and reopen the Mini App from the bot.")
+    return {"tgid": telegram_user_id, "user": telegram_user, "auth_date": auth_date}
+
+
+def require_registered_telegram_user(
+    x_telegram_init_data: str | None = Header(default=None, alias="X-Telegram-Init-Data"),
+):
+    auth = validate_telegram_init_data(x_telegram_init_data or "")
+    try:
+        user = get_registered_user(auth["tgid"])
+    except Exception:
+        logger.exception("Database error during Mini App authentication")
+        raise HTTPException(status_code=503, detail="Registration service is temporarily unavailable.")
+    if not user or not user.get("phone"):
+        raise HTTPException(status_code=403, detail="Phone verification is required. Return to the Ranchbot bot and share your own phone number.")
+    return {"tgid": auth["tgid"], "phone": user["phone"], "telegram_user": auth["user"]}
+
+# ---------------------------------------------------------------------------
+# FastAPI application: web server and bot share this single entry point.
+# ---------------------------------------------------------------------------
 
 telegram_app = None
 
@@ -334,56 +363,36 @@ telegram_app = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global telegram_app
-
-    # Ensure the required database table exists.
     await asyncio.to_thread(initialize_database)
-
     if not BOT_TOKEN:
-        raise RuntimeError(
-            "BOT_TOKEN is missing. Set it as an environment variable."
-        )
+        raise RuntimeError("BOT_TOKEN is missing. Set it in .env before starting Ranchbot.")
 
-    telegram_app = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .build()
-    )
-
+    telegram_app = Application.builder().token(BOT_TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(
-        MessageHandler(filters.CONTACT, receive_contact)
-    )
-    telegram_app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
-    )
-
+    telegram_app.add_handler(MessageHandler(filters.CONTACT, receive_contact))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     await telegram_app.initialize()
     await telegram_app.start()
-
     if telegram_app.updater is None:
         raise RuntimeError("Telegram polling is unavailable.")
-
     await telegram_app.updater.start_polling()
-
-    logger.info("Telegram bot started")
-    logger.info("Web backend started")
-
+    logger.info("Telegram bot polling started")
+    logger.info("Ranchbot web server started")
     try:
         yield
     finally:
         if telegram_app.updater and telegram_app.updater.running:
             await telegram_app.updater.stop()
-
         if telegram_app.running:
             await telegram_app.stop()
-
         await telegram_app.shutdown()
-        logger.info("Application stopped")
+        logger.info("Ranchbot stopped")
 
 
 app = FastAPI(
     title="Ranchbot",
-    description="University student services",
+    description="Telegram bot and authenticated student Mini App",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
@@ -391,36 +400,107 @@ app = FastAPI(
 @app.get("/", include_in_schema=False)
 async def homepage():
     if not INDEX_FILE.is_file():
-        return {
-            "error": "web/index.html was not found."
-        }
-
+        raise HTTPException(status_code=500, detail="frontend/index.html was not found.")
     return FileResponse(INDEX_FILE)
 
 
 @app.get("/api/health")
 async def health_check():
-    """Basic health endpoint for testing the backend."""
-
     try:
-        await asyncio.to_thread(
-            lambda: (
-                get_db_connection().close()
-            )
-        )
-        return {"status": "ok", "database": "connected"}
-    except Exception:
-        logger.exception("Health check database error")
+        await asyncio.to_thread(initialize_database)
         return {
-            "status": "error",
-            "database": "unavailable",
+            "status": "ok",
+            "database": "connected",
+            "datasets": {
+                "hemis_credentials": (GENERATED_DIR / "login.json").exists(),
+                "contracts": (GENERATED_DIR / "contract.json").exists(),
+            },
         }
+    except Exception:
+        logger.exception("Health check failed")
+        raise HTTPException(status_code=503, detail="Database is unavailable.")
+
+
+@app.get("/api/auth/me")
+async def auth_me(current_user: dict = Depends(require_registered_telegram_user)):
+    return {
+        "ok": True,
+        "telegram_user_id": current_user["tgid"],
+        "phone_verified": True,
+    }
+
+
+def require_admin(x_admin_token: str | None) -> None:
+    configured = settings.admin_upload_token
+    if not configured or configured == "CHANGE_ME_BEFORE_RUNNING":
+        raise HTTPException(status_code=503, detail="Set ADMIN_UPLOAD_TOKEN in .env before using admin upload endpoints.")
+    if not x_admin_token or not hmac.compare_digest(x_admin_token, configured):
+        raise HTTPException(status_code=403, detail="Not authorized to upload datasets.")
+
+
+async def read_upload(file: UploadFile) -> bytes:
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Please upload an .xlsx file.")
+    max_bytes = settings.max_upload_mb * 1024 * 1024
+    content = await file.read(max_bytes + 1)
+    if len(content) > max_bytes:
+        raise HTTPException(status_code=413, detail=f"File exceeds {settings.max_upload_mb} MB limit.")
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    return content
+
+
+@app.post("/api/admin/upload/hemis")
+async def upload_hemis(file: UploadFile = File(...), x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")):
+    require_admin(x_admin_token)
+    content = await read_upload(file)
+    try:
+        dataset = parse_credentials(content)
+    except WorkbookValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    atomic_write_json(GENERATED_DIR / "login.json", dataset)
+    return {"ok": True, "message": "HEMIS credentials dataset updated.", "records": len(dataset)}
+
+
+@app.post("/api/admin/upload/contracts")
+async def upload_contracts(file: UploadFile = File(...), x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")):
+    require_admin(x_admin_token)
+    content = await read_upload(file)
+    try:
+        dataset = parse_contracts(content)
+    except WorkbookValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    atomic_write_json(GENERATED_DIR / "contract.json", dataset)
+    return {"ok": True, "message": "Contract dataset updated.", "records": len(dataset)}
+
+
+@app.get("/api/hemis/credentials/{student_id}")
+def get_credentials(student_id: str, _current_user: dict = Depends(require_registered_telegram_user)):
+    student_id = student_id.upper()
+    if not STUDENT_ID_RE.fullmatch(student_id):
+        raise HTTPException(status_code=422, detail="Student ID must contain two English letters followed by seven digits.")
+    dataset = load_json(GENERATED_DIR / "login.json")
+    if dataset is None:
+        raise HTTPException(status_code=503, detail="HEMIS credentials have not been uploaded yet.")
+    record = dataset.get(student_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="No HEMIS credentials were found for this student ID.")
+    return {"student_id": student_id, **record}
+
+
+@app.get("/api/contracts/{student_id}")
+def get_contract(student_id: str, _current_user: dict = Depends(require_registered_telegram_user)):
+    student_id = student_id.upper()
+    if not STUDENT_ID_RE.fullmatch(student_id):
+        raise HTTPException(status_code=422, detail="Student ID must contain two English letters followed by seven digits.")
+    dataset = load_json(GENERATED_DIR / "contract.json")
+    if dataset is None:
+        raise HTTPException(status_code=503, detail="Contract payment data has not been uploaded yet.")
+    record = dataset.get(student_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="No contract payment record was found for this student ID.")
+    return {"student_id": student_id, **record}
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=False,
-    )
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)

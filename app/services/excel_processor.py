@@ -5,7 +5,7 @@ from typing import Any
 
 from openpyxl import load_workbook
 
-STUDENT_ID_RE = re.compile(r"^[A-Z]{2}\\d{7}$")
+STUDENT_ID_RE = re.compile(r"^[A-Z]{2}\d{7}$")
 
 class WorkbookValidationError(ValueError):
     pass
