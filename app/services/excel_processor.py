@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 from io import BytesIO
 import re
 from typing import Any
+from datetime import date, datetime
 
 from openpyxl import load_workbook
 
@@ -76,6 +77,18 @@ def parse_contracts(file_bytes: bytes) -> dict[str, dict[str, int | float]]:
     if not wb.worksheets:
         raise WorkbookValidationError("The workbook has no worksheets.")
     ws = wb.worksheets[0]
+    raw_update_date = ws["A1"].value
+
+    if isinstance(raw_update_date, datetime):
+        update_date = raw_update_date.date().isoformat()
+    elif isinstance(raw_update_date, date):
+        update_date = raw_update_date.isoformat()
+    elif raw_update_date is not None:
+        update_date = str(raw_update_date).strip()
+    else:
+        raise WorkbookValidationError(
+            "Cell A1 must contain the contract data update date."
+        )
     result: dict[str, dict[str, int | float]] = {}
     try:
         for row_num, row in enumerate(ws.iter_rows(min_row=2, min_col=1, max_col=4, values_only=True), start=2):
@@ -116,7 +129,10 @@ def parse_contracts(file_bytes: bytes) -> dict[str, dict[str, int | float]]:
         wb.close()
     if not result:
         raise WorkbookValidationError("No contract records found from row 2 onward.")
-    return result
+    return {
+        "update_date": update_date,
+        "students": result,
+    }
 
 def _number(value: Decimal) -> int | float:
     if value == value.to_integral_value():

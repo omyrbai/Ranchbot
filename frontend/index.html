@@ -93,11 +93,41 @@ document.getElementById('credentials-form').addEventListener('submit', async e=>
   try { const data=await apiGet('/api/hemis/credentials/'+encodeURIComponent(id)); msg.textContent='Login: '+data.login+'\nPassword: '+data.password; msg.style.whiteSpace='pre-line'; }
   catch(error){msg.textContent=error.message;}
 });
-document.getElementById('find-form').addEventListener('submit', async e=>{
-  e.preventDefault(); const msg=document.getElementById('find-msg'); const id=document.getElementById('student-id').value.trim().toUpperCase();
-  msg.textContent='Searching…';
-  try { const data=await apiGet('/api/contracts/'+encodeURIComponent(id)); msg.style.whiteSpace='pre-line'; msg.textContent='Total contract: '+data.total_amount+'\nPaid: '+data.paid_amount+'\nRemaining: '+data.remaining_amount+'\nPayment: '+data.payment_percentage+'%'; }
-  catch(error){msg.textContent=error.message;}
+document.getElementById('find-form').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const msg = document.getElementById('find-msg');
+  const id = document.getElementById('student-id').value.trim().toUpperCase();
+
+  msg.textContent = 'Searching…';
+
+  try {
+    const data = await apiGet('/api/contracts/' + encodeURIComponent(id));
+
+    let formattedDate = 'Unknown';
+
+    if (data.update_date) {
+      const parts = data.update_date.split('-');
+
+      formattedDate = parts.length === 3
+        ? `${parts[2]}.${parts[1]}.${parts[0]}`
+        : data.update_date;
+    }
+
+    const money = value =>
+      Number(value).toLocaleString('en-US');
+
+    msg.style.whiteSpace = 'pre-line';
+
+    msg.textContent =
+      `📅 Payment information reflects the data updated on: ${formattedDate}\n\n` +
+      `Total contract: ${money(data.total_amount)}\n` +
+      `Paid: ${money(data.paid_amount)}\n` +
+      `Remaining: ${money(data.remaining_amount)}\n` +
+      `Payment: ${data.payment_percentage}%`;
+  } catch (error) {
+    msg.textContent = error.message;
+  }
 });
 document.getElementById('report-form').addEventListener('submit',e=>{e.preventDefault();document.getElementById('report-msg').textContent='The report submission endpoint is not implemented yet. Your files have not been uploaded or sent.'});
 const phoneInput=document.getElementById('phone-local');

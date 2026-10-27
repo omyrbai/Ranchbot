@@ -317,11 +317,23 @@ async def receive_admin_excel(
 
         context.user_data.pop("awaiting_admin_upload", None)
 
-        await message.reply_text(
+        record_count = (
+            len(dataset["students"])
+            if upload_type == "contracts"
+            else len(dataset)
+        )
+
+        confirmation = (
             f"✅ {dataset_name.capitalize()} uploaded successfully!\n\n"
-            f"📊 Records imported: {len(dataset)}\n"
+            f"📊 Records imported: {record_count}\n"
             f"📁 Dataset: {destination.name}"
         )
+
+        if upload_type == "contracts":
+            confirmation += f"\n📅 Data updated on: {dataset['update_date']}"
+
+        await message.reply_text(confirmation)
+
 
         logger.info(
             "Admin %s uploaded %s records to %s",
@@ -670,17 +682,41 @@ def get_credentials(student_id: str, _current_user: dict = Depends(require_regis
 
 
 @app.get("/api/contracts/{student_id}")
-def get_contract(student_id: str, _current_user: dict = Depends(require_registered_telegram_user)):
+def get_contract(
+    student_id: str,
+    _current_user: dict = Depends(require_registered_telegram_user),
+):
     student_id = student_id.upper()
+
     if not STUDENT_ID_RE.fullmatch(student_id):
-        raise HTTPException(status_code=422, detail="Student ID must contain two English letters followed by seven digits.")
+        raise HTTPException(
+            status_code=422,
+            detail="Student ID must contain two English letters followed by seven digits.",
+        )
+
     dataset = load_json(GENERATED_DIR / "contract.json")
+
     if dataset is None:
-        raise HTTPException(status_code=503, detail="Contract payment data has not been uploaded yet.")
-    record = dataset.get(student_id)
+        raise HTTPException(
+            status_code=503,
+            detail="Contract payment data has not been uploaded yet.",
+        )
+
+    students = dataset.get("students", {})
+    record = students.get(student_id)
+
     if record is None:
-        raise HTTPException(status_code=404, detail="No contract payment record was found for this student ID.")
-    return {"student_id": student_id, **record}
+        raise HTTPException(
+            status_code=404,
+            detail="No contract payment record was found for this student ID.",
+        )
+
+    return {
+        "student_id": student_id,
+        "update_date": dataset.get("update_date"),
+        **record,
+    }
+
 
 
 if __name__ == "__main__":
