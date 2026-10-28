@@ -726,14 +726,11 @@ async def request_phone_change(
     telegram_id = current_user["tgid"]
     current_phone = current_user.get("phone") or "Not provided"
 
-    telegram_user = current_user.get("telegram_user")
+    telegram_user = current_user.get("telegram_user") or {}
 
-    if telegram_user:
-        first_name = telegram_user.first_name or ""
-        last_name = telegram_user.last_name or ""
-        full_name = f"{first_name} {last_name}".strip()
-    else:
-        full_name = ""
+    first_name = telegram_user.get("first_name", "")
+    last_name = telegram_user.get("last_name", "")
+    full_name = f"{first_name} {last_name}".strip()
 
     if not full_name:
         full_name = "Not provided"
