@@ -185,7 +185,7 @@ async def send_registered_menu(message):
         "✅ Your phone number is registered. Open the Mini App to use student services:",
         reply_markup=ReplyKeyboardRemove(),
     )
-    await message.reply_text("🚀 Tap below to open Ranchbot:", reply_markup=mini_app_keyboard())
+    await message.reply_text("🚀 Tap below to open the Mini app:", reply_markup=mini_app_keyboard())
 
 # ---------------------------------------------------------------------------
 # Admin Excel upload handlers
