@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
-    app_name: str = "Ranchbot API"
+    app_name: str = "REGOFIS bot API"
     admin_upload_token: str = "CHANGE_ME_BEFORE_RUNNING"
     max_upload_mb: int = 15
 

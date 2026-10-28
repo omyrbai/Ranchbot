@@ -176,7 +176,7 @@ def contract_menu_keyboard():
 
 def mini_app_keyboard():
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🚀 Open Ranchbot", web_app=WebAppInfo(url=WEB_APP_URL))]]
+        [[InlineKeyboardButton("🚀 Open the bot", web_app=WebAppInfo(url=WEB_APP_URL))]]
     )
 
 
@@ -384,7 +384,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_registered_menu(message)
     else:
         await message.reply_text(
-            "Welcome to Ranchbot! To unlock the Mini App and student services, "
+            "Welcome to the bot! To unlock the Mini App and student services, "
             "please share your own phone number using the button below.",
             reply_markup=registration_keyboard(),
         )
@@ -475,7 +475,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await message.reply_text("No contract record was found for that student ID.", reply_markup=main_menu_keyboard())
     elif text == "📝 Discrepancy Report":
-        await message.reply_text("Please open the Ranchbot Mini App to continue with student services.", reply_markup=mini_app_keyboard())
+        await message.reply_text("Please open the Mini App to continue with student services.", reply_markup=mini_app_keyboard())
     elif text == "⬅️ Main Menu":
         await send_registered_menu(message)
     elif text == "ℹ️ Help":
@@ -533,7 +533,7 @@ def require_registered_telegram_user(
         logger.exception("Database error during Mini App authentication")
         raise HTTPException(status_code=503, detail="Registration service is temporarily unavailable.")
     if not user or not user.get("phone"):
-        raise HTTPException(status_code=403, detail="Phone verification is required. Return to the Ranchbot bot and share your own phone number.")
+        raise HTTPException(status_code=403, detail="Phone verification is required. Return to the bot and share your own phone number.")
     return {"tgid": auth["tgid"], "phone": user["phone"], "telegram_user": auth["user"]}
 
 # ---------------------------------------------------------------------------
@@ -548,7 +548,7 @@ async def lifespan(app: FastAPI):
     global telegram_app
     await asyncio.to_thread(initialize_database)
     if not BOT_TOKEN:
-        raise RuntimeError("BOT_TOKEN is missing. Set it in .env before starting Ranchbot.")
+        raise RuntimeError("BOT_TOKEN is missing. Set it in .env before starting the bot.")
 
 
     telegram_app = Application.builder().token(BOT_TOKEN).build()
@@ -579,7 +579,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("Telegram polling is unavailable.")
     await telegram_app.updater.start_polling()
     logger.info("Telegram bot polling started")
-    logger.info("Ranchbot web server started")
+    logger.info("Bot web server started")
     try:
         yield
     finally:
@@ -588,11 +588,11 @@ async def lifespan(app: FastAPI):
         if telegram_app.running:
             await telegram_app.stop()
         await telegram_app.shutdown()
-        logger.info("Ranchbot stopped")
+        logger.info("Bot stopped")
 
 
 app = FastAPI(
-    title="Ranchbot",
+    title="Regofis Bot",
     description="Telegram bot and authenticated student Mini App",
     version="1.0.0",
     lifespan=lifespan,
