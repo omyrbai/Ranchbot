@@ -124,7 +124,7 @@ document.getElementById('find-form').addEventListener('submit', async e => {
       `Total contract: ${money(data.total_amount)}\n` +
       `Paid: ${money(data.paid_amount)}\n` +
       `Remaining: ${money(data.remaining_amount)}\n` +
-      `Payment: ${data.payment_percentage}%`;
+      `Payment: ${Number(data.payment_percentage).toFixed(2)}%`;
   } catch (error) {
     msg.textContent = error.message;
   }
@@ -164,17 +164,81 @@ function setupStudentId(id){
   });
 }
 ['hemis-id','student-id','report-id','phone-id'].forEach(setupStudentId);
-document.getElementById('phone-form').addEventListener('submit',e=>{
-  e.preventDefault();
-  const digits=phoneInput.value.replace(/\D/g,'');
-  const success=document.getElementById('phone-success');
-  if(digits.length!==9){
-    success.textContent='Please enter all 9 digits of the phone number.';
-    success.classList.add('show');success.style.background='#fff1df';success.style.color='#8a4b08';
-  }else{
-    success.textContent='Your request to change the phone number to +998 '+formatUzPhone(digits)+' has been made. The responsible administrator will review it.';
-    success.classList.add('show');success.style.background='';success.style.color='';
-  }
+document.getElementById("phone-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const studentId = document.getElementById("phone-id").value.trim().toUpperCase();
+    const phoneInput = document.getElementById("phone-local").value;
+    const phoneDigits = phoneInput.replace(/\D/g, "");
+    const successBox = document.getElementById("phone-success");
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    // Hide the previous result
+    successBox.textContent = "";
+    successBox.style.display = "none";
+
+    // Validate the identification number
+    if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
+        alert("Enter a valid ID number, for example AB1234567.");
+        return;
+    }
+
+    // Validate the phone number
+    if (phoneDigits.length !== 9) {
+        alert("Enter a valid phone number containing 9 digits.");
+        return;
+    }
+
+    // Prepare the request
+    const payload = {
+        id_number: studentId,
+        new_phone: "+998" + phoneDigits
+    };
+
+    try {
+        // Prevent duplicate submissions
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+
+        const response = await fetch("/api/hemis/phone-change", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Telegram-Init-Data": telegramInitData
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(
+                result.detail || result.message || "Failed to submit the request."
+            );
+        }
+
+        // Display success only after the backend confirms success
+        successBox.textContent =
+            result.message || "Your phone-change request has been submitted successfully.";
+
+        successBox.style.display = "block";
+
+        // Clear the form after successful submission
+        form.reset();
+
+    } catch (error) {
+        console.error("Phone-change request failed:", error);
+
+        alert(error.message || "An error occurred. Please try again.");
+
+    } finally {
+        // Allow the user to submit again
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
+    }
 });
 document.querySelectorAll('input[type=file]').forEach(input=>input.addEventListener('change',()=>{const ids={receipt:'receipt-name','id-front':'front-name','id-back':'back-name'};document.getElementById(ids[input.id]).textContent=input.files&&input.files[0]?input.files[0].name:'No file selected'}));
 </script></body></html>

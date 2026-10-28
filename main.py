@@ -11,7 +11,10 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import parse_qsl
+import html
+import re
 
+from pydantic import BaseModel, Field
 import pymysql
 import uvicorn
 from dotenv import load_dotenv
@@ -58,6 +61,9 @@ DB_NAME = os.getenv("DB_NAME", "ranchbot_db")
 DB_USER = os.getenv("DB_USER", "ranchbot_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 WEB_APP_URL = os.getenv("WEB_APP_URL", "https://regofis.shabyte.uz").strip().rstrip("/")
+GROUP_TGID = int(os.getenv("GR_TG_ID", "0"))
+PHONE_CHANGE_TOPIC_ID = int(os.getenv("PHONE_CHANGE_TOPIC_ID", "0"))
+
 TELEGRAM_INIT_DATA_MAX_AGE_SECONDS = int(
     os.getenv("TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "86400")
 )
@@ -74,6 +80,9 @@ GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 # Database: reuse ranchbot_db.users; do not create a second users table.
 # ---------------------------------------------------------------------------
 
+class PhoneChangeRequest(BaseModel):
+    id_number: str = Field(min_length=9, max_length=9)
+    new_phone: str = Field(min_length=12, max_length=13)
 
 def get_db_connection():
     if not DB_PASSWORD:
@@ -589,7 +598,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
 @app.get("/", include_in_schema=False)
 async def homepage():
     if not INDEX_FILE.is_file():
@@ -679,6 +687,110 @@ def get_credentials(student_id: str, _current_user: dict = Depends(require_regis
     if record is None:
         raise HTTPException(status_code=404, detail="No HEMIS credentials were found for this student ID.")
     return {"student_id": student_id, **record}
+
+@app.post("/api/hemis/phone-change")
+async def request_phone_change(
+    request: PhoneChangeRequest,
+    current_user: dict = Depends(require_registered_telegram_user),
+):
+    # 1. Check the configured Telegram destination
+    if GROUP_TGID == 0:
+        raise HTTPException(
+            status_code=500,
+            detail="Phone-change group is not configured.",
+        )
+
+    # 2. Validate the identification number
+    student_id = request.id_number.strip().upper()
+
+    if not STUDENT_ID_RE.fullmatch(student_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid identification number format.",
+        )
+
+    # 3. Normalize and validate the new phone number
+    phone_digits = re.sub(r"\D", "", request.new_phone)
+
+    if phone_digits.startswith("998") and len(phone_digits) == 12:
+        new_phone = f"+{phone_digits}"
+    elif len(phone_digits) == 9:
+        new_phone = f"+998{phone_digits}"
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid phone number. Enter 9 digits.",
+        )
+
+    # 4. Get information about the registered Telegram user
+    telegram_id = current_user["tgid"]
+    current_phone = current_user.get("phone") or "Not provided"
+
+    telegram_user = current_user.get("telegram_user")
+
+    if telegram_user:
+        first_name = telegram_user.first_name or ""
+        last_name = telegram_user.last_name or ""
+        full_name = f"{first_name} {last_name}".strip()
+    else:
+        full_name = ""
+
+    if not full_name:
+        full_name = "Not provided"
+
+    # 5. Escape values before inserting them into HTML
+    safe_name = html.escape(full_name)
+    safe_current_phone = html.escape(str(current_phone))
+    safe_telegram_id = html.escape(str(telegram_id))
+    safe_student_id = html.escape(student_id)
+    safe_new_phone = html.escape(new_phone)
+
+    # 6. Build the Telegram message
+    message = (
+        "<b>📱 Telefon nomerin ózgertiw ushın arza</b>\n\n"
+        f"📞 Házirgi telefon nomeri: <code>{safe_current_phone}</code>\n"
+        f"🆔 Telegram ID: <code>{safe_telegram_id}</code>\n"
+        f"👤 Tolıq atı: {safe_name}\n"
+        f"🪪 ID karta nomeri: <code>{safe_student_id}</code>\n\n"
+        f"Arza beriwshi <code>{safe_student_id}</code> telefon nomerin "
+        f"<code>{safe_new_phone}</code> nomerine ózgertiwge arza berdi."
+    )
+
+    # 7. Send the request to the Telegram group and topic
+    try:
+        if telegram_app is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Telegram bot is not initialized.",
+            )
+
+        send_options = {
+            "chat_id": GROUP_TGID,
+            "text": message,
+            "parse_mode": "HTML",
+        }
+
+        if PHONE_CHANGE_TOPIC_ID > 0:
+            send_options["message_thread_id"] = PHONE_CHANGE_TOPIC_ID
+
+        await telegram_app.bot.send_message(**send_options)
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        logger.exception("Failed to send phone-change request to Telegram.")
+
+        raise HTTPException(
+            status_code=502,
+            detail="Could not send the request to Telegram. Please try again.",
+        )
+    # 8. Tell the frontend that the request was sent successfully
+    return {
+        "ok": True,
+        "message": "Phone-change request sent successfully.",
+    }
+
 
 
 @app.get("/api/contracts/{student_id}")
