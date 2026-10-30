@@ -700,6 +700,8 @@ def get_credentials(student_id: str, _current_user: dict = Depends(require_regis
 @app.post("/api/contracts/discrepancy-report")
 async def submit_discrepancy_report(
     student_id: str = Form(...),
+    full_name: str = Form(...),
+    pinfl : str =  Form(...),
     details: str = Form(...),
     receipt: UploadFile = File(...),
     id_front: UploadFile = File(...),
@@ -726,6 +728,26 @@ async def submit_discrepancy_report(
         raise HTTPException(
             status_code=400,
             detail="Enter a valid student ID: two letters followed by seven digits.",
+        )
+    full_name = full_name.strip()
+    pinfl = pinfl.strip()
+
+    if not full_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter your full name.",
+        )
+
+    if len(full_name) > 150:
+        raise HTTPException(
+            status_code=400,
+            detail="Full name must not exceed 150 characters.",
+        )
+
+    if not re.fullmatch(r"\d{14}", pinfl):
+        raise HTTPException(
+            status_code=400,
+            detail="PINFL must contain exactly 14 digits.",
         )
 
     # 3. Validate report description
@@ -789,22 +811,26 @@ async def submit_discrepancy_report(
     current_phone = current_user.get("phone") or "Not provided"
     telegram_user = current_user.get("telegram_user") or {}
 
-    full_name = (
+    telegram_name = (
         f"{telegram_user.get('first_name', '')} "
         f"{telegram_user.get('last_name', '')}"
     ).strip() or "Not provided"
 
     # 6. Escape user-provided text before using Telegram HTML formatting
     safe_name = html.escape(full_name)
+    safe_telegram_name = html.escape(telegram_name)
+    safe_pinfl = html.escape(pinfl)
     safe_phone = html.escape(str(current_phone))
     safe_telegram_id = html.escape(str(telegram_id))
     safe_student_id = html.escape(student_id)
     safe_details = html.escape(details)
 
     report_message = (
-        "<b>📄 Contract / Payment Discrepancy Report</b>\n\n"
-        f"👤 <b>Student:</b> {safe_name}\n"
+        "🚨 <b>Discrepancy Report</b>\n\n"
+        f"👤 <b>Full Name (as entered):</b> {safe_name}\n"
+        f"📱 <b>Telegram Name:</b> {safe_telegram_name}\n"
         f"🆔 <b>Student ID:</b> <code>{safe_student_id}</code>\n"
+        f"🪪 <b>PINFL/JSHSHIR:</b> <code>{safe_pinfl}</code>\n"
         f"📱 <b>Phone:</b> <code>{safe_phone}</code>\n"
         f"💬 <b>Telegram ID:</b> <code>{safe_telegram_id}</code>\n\n"
         f"<b>Description:</b>\n{safe_details}\n\n"
@@ -901,6 +927,7 @@ async def request_phone_change(
 
     # 5. Escape values before inserting them into HTML
     safe_name = html.escape(full_name)
+    safe_telegram_name = html.escape(telegram_name)
     safe_current_phone = html.escape(str(current_phone))
     safe_telegram_id = html.escape(str(telegram_id))
     safe_student_id = html.escape(student_id)

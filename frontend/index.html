@@ -38,7 +38,29 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <section class="screen" id="phone"><button class="back" data-go="hemis">← HEMIS services</button><div class="eyebrow">Account assistance</div><h1>Change my phone</h1><p class="intro">Enter the new phone number you want linked to your HEMIS account.</p><form class="panel" id="phone-form"><label class="fieldlabel" for="phone-id">Identification document ID number</label><input type="text" id="phone-id" autocomplete="off" placeholder="AB1234567" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><div class="note">Enter two English letters followed by seven digits, e.g. AB1234567.</div><label class="fieldlabel" for="phone-local">New phone number</label><div class="phone-field"><span class="phone-prefix">+998</span><input type="tel" id="phone-local" inputmode="numeric" autocomplete="tel-national" placeholder="99 999 99 99" maxlength="12" required></div><div class="note">Enter the remaining 9 digits. The country code +998 is already included.</div><button class="primary">Send request</button><div class="success" id="phone-success" role="status">Your request to change the phone number has been made. The responsible administrator will review it.</div></form></section>
 <section class="screen" id="contract"><button class="back" data-go="home">← Home</button><div class="eyebrow">Tuition payments</div><h1>Contract</h1><p class="intro">Find your payment status or report an issue with your contract information.</p><div class="cards" style="margin-top:20px"><button class="card" data-go="find"><span class="ico blue">🔎</span><span class="ctitle">Find contract</span><span class="cdesc">Enter your student ID to view payment status</span></button><button class="card" data-go="report"><span class="ico orange">📝</span><span class="ctitle">Discrepancy report</span><span class="cdesc">Report incorrect payment information</span></button></div></section>
 <section class="screen" id="find"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Payment lookup</div><h1>Find contract</h1><p class="intro">Enter your student ID to find the associated contract payment information.</p><form class="panel" id="find-form"><label class="fieldlabel" for="student-id">Student ID</label><input type="text" id="student-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><button class="primary">Find payment status</button><div class="statusbox" id="find-msg">Total contract amount, paid amount, and remaining balance will appear here once connected.</div></form></section>
-<section class="screen" id="report"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Contract support</div><h1>Discrepancy report</h1><p class="intro">Enter your details and attach the supporting documents.</p><form class="panel" id="report-form"><label class="fieldlabel" for="report-id">Student ID</label><input type="text" id="report-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><label class="fieldlabel" for="report-details">Describe the discrepancy</label><textarea id="report-details" placeholder="Explain what is incorrect in your contract or payment details" required></textarea>
+<section class="screen" id="report"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Contract support</div><h1>Discrepancy report</h1><p class="intro">Enter your details and attach the supporting documents.</p><form class="panel" id="report-form"><label class="fieldlabel" for="report-id">Student ID</label><input type="text" id="report-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><label class="fieldlabel" for="report-fullname">Full Name</label>
+<input
+    type="text"
+    id="report-fullname"
+    name="full_name"
+    placeholder="Enter your full name"
+    autocomplete="name"
+    maxlength="150"
+    required
+>
+
+<label class="fieldlabel" for="report-pinfl">PINFL / JSHSHIR</label>
+<input
+    type="text"
+    id="report-pinfl"
+    name="pinfl"
+    placeholder="Enter your 14-digit PINFL"
+    inputmode="numeric"
+    maxlength="14"
+    pattern="[0-9]{14}"
+    title="PINFL must contain exactly 14 digits"
+    required
+><label class="fieldlabel" for="report-details">Describe the discrepancy</label><textarea id="report-details" placeholder="Explain what is incorrect in your contract or payment details" required></textarea>
 <div class="uploadrow"><label for="receipt">1. Payment receipt</label><input type="file" id="receipt" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="receipt-name">Upload the payment receipt (photo/PDF).</div></div>
 <div class="uploadrow"><label for="id-front">2. ID card — front side</label><input type="file" id="id-front" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="front-name">Upload the front side (photo/PDF).</div></div>
 <div class="uploadrow"><label for="id-back">3. ID card — back side</label><input type="file" id="id-back" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="back-name">Upload the back side (photo/PDF).</div></div>
@@ -148,6 +170,16 @@ document.getElementById('report-form').addEventListener('submit', async (event) 
         .trim()
         .toUpperCase();
 
+    const fullName = document
+        .getElementById('report-fullname')
+        .value
+        .trim();
+
+    const pinfl = document
+        .getElementById('report-pinfl')
+        .value
+        .trim();
+
     const details = document
         .getElementById('report-details')
         .value
@@ -161,6 +193,19 @@ document.getElementById('report-form').addEventListener('submit', async (event) 
     if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
         messageBox.textContent =
             'Enter a valid student ID: two letters followed by seven digits.';
+        return;
+    }
+
+    //Pinfl and fullname
+    if (!fullName) {
+        messageBox.textContent = 'Please enter your full name.';
+        document.getElementById('report-fullname').focus();
+        return;
+    }
+
+    if (!/^\d{14}$/.test(pinfl)) {
+        messageBox.textContent = 'PINFL must contain exactly 14 digits.';
+        document.getElementById('report-pinfl').focus();
         return;
     }
 
@@ -200,6 +245,8 @@ document.getElementById('report-form').addEventListener('submit', async (event) 
     const formData = new FormData();
 
     formData.append('student_id', studentId);
+    formData.append('full_name', fullName);
+    formData.append('pinfl', pinfl);
     formData.append('details', details);
     formData.append('receipt', receipt);
     formData.append('id_front', idFront);
