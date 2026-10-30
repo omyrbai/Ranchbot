@@ -830,7 +830,7 @@ async def submit_discrepancy_report(
         f"👤 <b>Full Name (as entered):</b> {safe_name}\n"
         f"📱 <b>Telegram Name:</b> {safe_telegram_name}\n"
         f"🆔 <b>Student ID:</b> <code>{safe_student_id}</code>\n"
-        f"🪪 <b>PINFL/JSHSHIR:</b> <code>{safe_pinfl}</code>\n"
+        f"🪪 <b>PINFL/JSHIR:</b> <code>{safe_pinfl}</code>\n"
         f"📱 <b>Phone:</b> <code>{safe_phone}</code>\n"
         f"💬 <b>Telegram ID:</b> <code>{safe_telegram_id}</code>\n\n"
         f"<b>Description:</b>\n{safe_details}\n\n"
@@ -876,6 +876,93 @@ async def submit_discrepancy_report(
         "ok": True,
         "message": "Your discrepancy report and all three documents were sent successfully.",
     }
+
+
+@app.post("/api/contracts/receipt")
+async def submit_contract_receipt(
+    student_id: str = Form(...),
+    full_name: str = Form(...),
+    pinfl: str = Form(...),
+    receipt: UploadFile = File(...),
+    current_user: dict = Depends(require_registered_telegram_user),
+):
+    """Receive a payment receipt and send it to the existing discrepancy Telegram topic."""
+    if GROUP_TGID == 0 or DISCR_TOPIC_ID <= 0:
+        raise HTTPException(
+            status_code=500,
+            detail="The contract receipt Telegram topic is not configured.",
+        )
+
+    if telegram_app is None:
+        raise HTTPException(status_code=503, detail="Telegram bot is not initialized.")
+
+    student_id = student_id.strip().upper()
+    full_name = full_name.strip()
+    pinfl = pinfl.strip()
+
+    if not STUDENT_ID_RE.fullmatch(student_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Enter a valid ID: two letters followed by seven digits.",
+        )
+    if not full_name:
+        raise HTTPException(status_code=400, detail="Please enter your full name.")
+    if len(full_name) > 150:
+        raise HTTPException(status_code=400, detail="Full name must not exceed 150 characters.")
+    if not re.fullmatch(r"\d{14}", pinfl):
+        raise HTTPException(status_code=400, detail="PINFL must contain exactly 14 digits.")
+    if not receipt.filename:
+        raise HTTPException(status_code=400, detail="Please upload the payment receipt.")
+
+    filename = Path(receipt.filename).name
+    suffix = Path(filename).suffix.lower()
+    content_type = (receipt.content_type or "").lower()
+    if not (suffix == ".pdf" or content_type == "application/pdf" or content_type.startswith("image/")):
+        raise HTTPException(status_code=400, detail="Payment receipt must be an image or PDF.")
+
+    max_file_size = 20 * 1024 * 1024
+    content = await receipt.read(max_file_size + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="The uploaded receipt is empty.")
+    if len(content) > max_file_size:
+        raise HTTPException(status_code=413, detail="Payment receipt exceeds the 20 MB file-size limit.")
+
+    telegram_id = current_user["tgid"]
+    current_phone = current_user.get("phone") or "Not provided"
+    telegram_user = current_user.get("telegram_user") or {}
+    telegram_name = (
+        f"{telegram_user.get('first_name', '')} {telegram_user.get('last_name', '')}"
+    ).strip() or "Not provided"
+
+    receipt_message = (
+        "🧾 <b>Payment Receipt Submission</b>\n\n"
+        f"👤 <b>Full Name:</b> {html.escape(full_name)}\n"
+        f"🆔 <b>Student ID / ID number:</b> <code>{html.escape(student_id)}</code>\n"
+        f"🪪 <b>PINFL/JSHSHIR:</b> <code>{html.escape(pinfl)}</code>\n"
+        f"📱 <b>Telegram Name:</b> {html.escape(telegram_name)}\n"
+        f"📞 <b>Phone:</b> <code>{html.escape(str(current_phone))}</code>\n"
+        f"💬 <b>Telegram ID:</b> <code>{html.escape(str(telegram_id))}</code>"
+    )
+    send_options = {"chat_id": GROUP_TGID, "message_thread_id": DISCR_TOPIC_ID}
+
+    try:
+        await telegram_app.bot.send_message(
+            **send_options, text=receipt_message, parse_mode="HTML"
+        )
+        await telegram_app.bot.send_document(
+            **send_options,
+            document=io.BytesIO(content),
+            filename=filename,
+            caption="Payment receipt",
+        )
+    except Exception as exc:
+        logger.exception("Failed to send payment receipt to Telegram")
+        raise HTTPException(
+            status_code=502,
+            detail="Telegram could not complete receipt delivery. Please contact support before submitting again.",
+        ) from exc
+
+    return {"ok": True, "message": "Your payment receipt and details were sent successfully."}
 
 
 @app.post("/api/hemis/phone-change")

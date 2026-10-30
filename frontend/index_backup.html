@@ -8,7 +8,7 @@
 <style>
 :root{--bg:#f4f6fa;--ink:#192235;--muted:#778196;--line:#e5e9f0;--blue:#2868d9;--blue-soft:#eaf1ff;--green:#168b63;--green-soft:#e7f7ef;--orange-soft:#fff1df;--purple-soft:#f0eaff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}button,input,textarea{font:inherit}button{cursor:pointer}.app{max-width:440px;min-height:100vh;margin:auto;padding:20px 17px 96px}
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:25px}.brand{display:flex;align-items:center;gap:11px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(140deg,#4d7cf5,#2454d8);color:white;display:grid;place-items:center;font-weight:800;font-size:21px}.brandname{font-size:18px;font-weight:800;letter-spacing:-.4px}.subtitle{font-size:12px;color:var(--muted);margin-top:3px}.avatar{width:39px;height:39px;border-radius:50%;background:#e8edfa;color:#3557a4;display:grid;place-items:center;font-weight:800}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:25px}.header-actions{display:flex;align-items:center;gap:9px}.language-select{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 7px;font-size:12px;font-weight:750;max-width:82px}.brand{display:flex;align-items:center;gap:11px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(140deg,#4d7cf5,#2454d8);color:white;display:grid;place-items:center;font-weight:800;font-size:21px}.brandname{font-size:18px;font-weight:800;letter-spacing:-.4px}.subtitle{font-size:12px;color:var(--muted);margin-top:3px}.avatar{width:39px;height:39px;border-radius:50%;background:#e8edfa;color:#3557a4;display:grid;place-items:center;font-weight:800}
 .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--blue);font-weight:800;margin-bottom:8px}h1{font-size:27px;letter-spacing:-.9px;line-height:1.18;margin:0}h2{font-size:17px;letter-spacing:-.3px;margin:0}p{font-size:14px;line-height:1.5;color:var(--muted)}
 .hero{margin:20px 0 25px;padding:21px;border-radius:23px;background:linear-gradient(120deg,#285be0,#477bf4);color:white;box-shadow:0 12px 25px #3267e927}.hero small{font-size:11px;letter-spacing:.8px;color:#dce6ff;font-weight:700}.hero h2{font-size:21px;margin:15px 0 7px}.hero p{color:#e0e8ff;font-size:13px;margin:0 0 18px}.lightbtn{background:#fff;color:#285be0;border:0;border-radius:12px;padding:12px 15px;font-weight:750}
 .sectionhead{display:flex;align-items:center;justify-content:space-between;margin:0 2px 13px}.sectionhead span{font-size:12px;color:var(--muted)}
@@ -21,10 +21,11 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 </style>
 </head>
 <body><section id="auth-gate" role="status" aria-live="polite"><div style="font-size:38px;margin-bottom:12px">🔐</div><h1>Checking access…</h1><p>Please wait while the bot verifies your Telegram registration.</p></section><main class="app">
-<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Ranchbot</div><div class="subtitle">Student services</div></div></div><div class="avatar">S</div></header>
+<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Regofisbot</div><div class="subtitle">Student services</div></div></div><div class="header-actions"><select id="language-select" class="language-select" aria-label="Select language"><option value="en">EN</option><option value="kk">KK</option></select><div class="avatar">S</div></div></header>
 <section class="screen active" id="home">
 <div class="eyebrow">Student self-service</div><h1>Hello there 👋</h1><p class="intro">Choose what you need help with today.</p>
-<div class="hero"><small>Nukus Campus of Urganch RANCH University of Technology · STUDENT PORTAL</small><h2>Your student services,<br>in one place.</h2><p>Access HEMIS guidance and check your contract payment status.</p><button class="lightbtn" id="home-open-hemis">Open HEMIS website ↗</button></div>
+<div class="hero"><small>Urganch RANCH University of Technology  · Nukus Campus
+    STUDENT PORTAL</small><h2>Your student services,<br>in one place.</h2><p>Access HEMIS guidance and check your contract payment status.</p><button class="lightbtn" id="home-open-hemis">Open HEMIS website ↗</button></div>
 <div class="sectionhead"><h2>Services</h2><span>2 services available</span></div><div class="cards">
 <button class="card" data-go="hemis"><span class="ico blue">🔐</span><span class="ctitle">HEMIS</span><span class="cdesc">Login help, password recovery and phone number changes</span></button>
 <button class="card" data-go="contract"><span class="ico green">💳</span><span class="ctitle">Contract</span><span class="cdesc">Find payment details or report a discrepancy</span></button></div>
@@ -37,11 +38,38 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <section class="screen" id="phone"><button class="back" data-go="hemis">← HEMIS services</button><div class="eyebrow">Account assistance</div><h1>Change my phone</h1><p class="intro">Enter the new phone number you want linked to your HEMIS account.</p><form class="panel" id="phone-form"><label class="fieldlabel" for="phone-id">Identification document ID number</label><input type="text" id="phone-id" autocomplete="off" placeholder="AB1234567" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><div class="note">Enter two English letters followed by seven digits, e.g. AB1234567.</div><label class="fieldlabel" for="phone-local">New phone number</label><div class="phone-field"><span class="phone-prefix">+998</span><input type="tel" id="phone-local" inputmode="numeric" autocomplete="tel-national" placeholder="99 999 99 99" maxlength="12" required></div><div class="note">Enter the remaining 9 digits. The country code +998 is already included.</div><button class="primary">Send request</button><div class="success" id="phone-success" role="status">Your request to change the phone number has been made. The responsible administrator will review it.</div></form></section>
 <section class="screen" id="contract"><button class="back" data-go="home">← Home</button><div class="eyebrow">Tuition payments</div><h1>Contract</h1><p class="intro">Find your payment status or report an issue with your contract information.</p><div class="cards" style="margin-top:20px"><button class="card" data-go="find"><span class="ico blue">🔎</span><span class="ctitle">Find contract</span><span class="cdesc">Enter your student ID to view payment status</span></button><button class="card" data-go="report"><span class="ico orange">📝</span><span class="ctitle">Discrepancy report</span><span class="cdesc">Report incorrect payment information</span></button></div></section>
 <section class="screen" id="find"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Payment lookup</div><h1>Find contract</h1><p class="intro">Enter your student ID to find the associated contract payment information.</p><form class="panel" id="find-form"><label class="fieldlabel" for="student-id">Student ID</label><input type="text" id="student-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><button class="primary">Find payment status</button><div class="statusbox" id="find-msg">Total contract amount, paid amount, and remaining balance will appear here once connected.</div></form></section>
-<section class="screen" id="report"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Contract support</div><h1>Discrepancy report</h1><p class="intro">Enter your details and attach the supporting documents.</p><form class="panel" id="report-form"><label class="fieldlabel" for="report-id">Student ID</label><input type="text" id="report-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><label class="fieldlabel" for="report-details">Describe the discrepancy</label><textarea id="report-details" placeholder="Explain what is incorrect in your contract or payment details" required></textarea>
+<section class="screen" id="report"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Contract support</div><h1>Discrepancy report</h1><p class="intro">Enter your details and attach the supporting documents.</p><form class="panel" id="report-form"><label class="fieldlabel" for="report-id">Student ID</label><input type="text" id="report-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><label class="fieldlabel" for="report-fullname">Full Name</label>
+<input
+    type="text"
+    id="report-fullname"
+    name="full_name"
+    placeholder="Enter your full name"
+    autocomplete="name"
+    maxlength="150"
+    required
+>
+
+<label class="fieldlabel" for="report-pinfl">PINFL / JSHSHIR</label>
+<input
+    type="text"
+    id="report-pinfl"
+    name="pinfl"
+    placeholder="Enter your 14-digit PINFL"
+    inputmode="numeric"
+    maxlength="14"
+    pattern="[0-9]{14}"
+    title="PINFL must contain exactly 14 digits"
+    required
+><label class="fieldlabel" for="report-details">Describe the discrepancy</label><textarea id="report-details" placeholder="Explain what is incorrect in your contract or payment details" required></textarea>
 <div class="uploadrow"><label for="receipt">1. Payment receipt</label><input type="file" id="receipt" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="receipt-name">Upload the payment receipt (photo/PDF).</div></div>
-<div class="uploadrow"><label for="id-front">2. ID card — front side</label><input type="file" id="id-front" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="front-name">Upload the front side (photo or PDF).</div></div>
-<div class="uploadrow"><label for="id-back">3. ID card — back side</label><input type="file" id="id-back" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="back-name">Upload the back side (photo or PDF).</div></div>
-<button class="primary">Review report</button><div class="statusbox" id="report-msg">The prototype lets you select files, but does not upload or submit them yet.</div></form></section>
+<div class="uploadrow"><label for="id-front">2. ID card — front side</label><input type="file" id="id-front" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="front-name">Upload the front side (photo/PDF).</div></div>
+<div class="uploadrow"><label for="id-back">3. ID card — back side</label><input type="file" id="id-back" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="back-name">Upload the back side (photo/PDF).</div></div>
+<button class="primary" type="submit" id="report-submit">
+    Send a request
+</button>
+<div class="statusbox" id="report-msg" role="status" aria-live="polite">
+    Complete all fields and attach all three required documents.
+</div></form></section>
 <nav class="bottom" aria-label="Main navigation"><button class="nav active" data-go="home"><span>⌂</span><span>Home</span></button><button class="nav" data-go="hemis"><span>🔐</span><span>HEMIS</span></button><button class="nav" data-go="contract"><span>▤</span><span>Contract</span></button></nav>
 </main>
 <script>
@@ -56,7 +84,7 @@ function showAuthGate(title, message) {
 }
 async function verifyAccess() {
   if (!telegram || !telegramInitData) {
-    showAuthGate('Open Ranchbot in Telegram', 'To protect student information, this Mini App can only be opened from the Ranchbot bot after you share your own phone number.');
+    showAuthGate('Open the bot in Telegram', 'To protect student information, this Mini App can only be opened from the bot after you share your own phone number.');
     return;
   }
   try {
@@ -65,18 +93,18 @@ async function verifyAccess() {
     const response = await fetch('/api/auth/me', {headers: {'X-Telegram-Init-Data': telegramInitData}});
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok || result.phone_verified !== true) {
-      showAuthGate('Registration required', result.detail || 'Return to the Ranchbot bot and share your own phone number first.');
+      showAuthGate('Registration required', result.detail || 'Return to the bot and share your own phone number first.');
       return;
     }
     document.body.classList.add('auth-ready');
     authGate.style.display = 'none';
   } catch (error) {
-    showAuthGate('Could not verify access', 'Please check your internet connection and reopen the Mini App from the Ranchbot bot.');
+    showAuthGate('Could not verify access', 'Please check your internet connection and reopen the Mini App from the bot.');
   }
 }
 verifyAccess();
 async function apiGet(path) {
-  if (!telegramInitData) throw new Error('Open this Mini App from the Ranchbot bot.');
+  if (!telegramInitData) throw new Error('Open this Mini App from the bot.');
   const response = await fetch(path, {headers: {'X-Telegram-Init-Data': telegramInitData}});
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.detail || 'Request failed. Please try again.');
@@ -129,7 +157,163 @@ document.getElementById('find-form').addEventListener('submit', async e => {
     msg.textContent = error.message;
   }
 });
-document.getElementById('report-form').addEventListener('submit',e=>{e.preventDefault();document.getElementById('report-msg').textContent='The report submission endpoint is not implemented yet. Your files have not been uploaded or sent.'});
+document.getElementById('report-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const messageBox = document.getElementById('report-msg');
+    const submitButton = document.getElementById('report-submit');
+
+    const studentId = document
+        .getElementById('report-id')
+        .value
+        .trim()
+        .toUpperCase();
+
+    const fullName = document
+        .getElementById('report-fullname')
+        .value
+        .trim();
+
+    const pinfl = document
+        .getElementById('report-pinfl')
+        .value
+        .trim();
+
+    const details = document
+        .getElementById('report-details')
+        .value
+        .trim();
+
+    const receipt = document.getElementById('receipt').files[0];
+    const idFront = document.getElementById('id-front').files[0];
+    const idBack = document.getElementById('id-back').files[0];
+
+    // 1. Validate the student ID
+    if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
+        messageBox.textContent =
+            'Enter a valid student ID: two letters followed by seven digits.';
+        return;
+    }
+
+    //Pinfl and fullname
+    if (!fullName) {
+        messageBox.textContent = 'Please enter your full name.';
+        document.getElementById('report-fullname').focus();
+        return;
+    }
+
+    if (!/^\d{14}$/.test(pinfl)) {
+        messageBox.textContent = 'PINFL must contain exactly 14 digits.';
+        document.getElementById('report-pinfl').focus();
+        return;
+    }
+
+    // 2. Validate the description
+    if (!details) {
+        messageBox.textContent =
+            'Please describe the discrepancy before submitting.';
+        document.getElementById('report-details').focus();
+        return;
+    }
+
+    // 3. Require all three documents
+    if (!receipt || !idFront || !idBack) {
+        const missingFiles = [];
+
+        if (!receipt) {
+            missingFiles.push('payment receipt');
+        }
+
+        if (!idFront) {
+            missingFiles.push('ID card front side');
+        }
+
+        if (!idBack) {
+            missingFiles.push('ID card back side');
+        }
+
+        messageBox.textContent =
+            'Your report is incomplete. Please attach: ' +
+            missingFiles.join(', ') +
+            '.';
+
+        return;
+    }
+
+    // 4. Prepare the multipart request
+    const formData = new FormData();
+
+    formData.append('student_id', studentId);
+    formData.append('full_name', fullName);
+    formData.append('pinfl', pinfl);
+    formData.append('details', details);
+    formData.append('receipt', receipt);
+    formData.append('id_front', idFront);
+    formData.append('id_back', idBack);
+
+    try {
+        // Prevent repeated submissions while the request is processing
+        submitButton.disabled = true;
+        messageBox.textContent =
+            'Sending your report and documents. Please wait.';
+
+        const response = await fetch(
+            '/api/contracts/discrepancy-report',
+            {
+                method: 'POST',
+                headers: {
+                    'X-Telegram-Init-Data': telegramInitData
+                },
+                body: formData
+            }
+        );
+
+        const responseText = await response.text();
+
+        let result = {};
+
+        try {
+            result = JSON.parse(responseText);
+        } catch {
+            result = {
+                detail: responseText || 'The server returned an empty response.'
+            };
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                `Request failed (${response.status}): ` +
+                (result.detail || result.message || 'Unknown server error.')
+            );
+        }
+
+        messageBox.textContent =
+            result.message ||
+            'Your discrepancy report was submitted successfully.';
+
+        form.reset();
+
+        // Reset the displayed filenames
+        document.getElementById('receipt-name').textContent =
+            'Upload the payment receipt (photo/PDF).';
+
+        document.getElementById('front-name').textContent =
+            'Upload the front side (photo/PDF).';
+
+        document.getElementById('back-name').textContent =
+            'Upload the back side (photo/PDF).';
+
+    } catch (error) {
+        console.error('Discrepancy report submission failed:', error);
+
+        messageBox.textContent =
+            error.message || 'An error occurred. Please try again.';
+
+    } finally {
+        submitButton.disabled = false;
+    }
+});
 const phoneInput=document.getElementById('phone-local');
 function formatUzPhone(value){
   const digits=value.replace(/\D/g,'').slice(0,9);
@@ -241,4 +425,73 @@ document.getElementById("phone-form").addEventListener("submit", async (event) =
     }
 });
 document.querySelectorAll('input[type=file]').forEach(input=>input.addEventListener('change',()=>{const ids={receipt:'receipt-name','id-front':'front-name','id-back':'back-name'};document.getElementById(ids[input.id]).textContent=input.files&&input.files[0]?input.files[0].name:'No file selected'}));
+
+// English / Karakalpak (Latin) interface. API requests and Telegram authentication remain unchanged.
+const translations = {
+  "Student services":"Xızmetler", "Checking access…":"Kiriw tekserilmekte…", "Please wait while the bot verifies your Telegram registration.":"Bot dizimnen ótiwińizdi tekserip atır. Kútiń.",
+  "Student service":"Studentlerge xızmet kórsetiw", "Hello there 👋":"Sálem 👋", "Choose the service you need":"Ózińizge kerekli xızmettı tanlań", "RANCH UNIVERSITY · STUDENT PORTAL":"RANCH · STUDENT PORTALI", "Services,":"Kórsetiletuǵın xızmetler", "in one place.":"bir jerde.", "Access HEMIS guidance and check your contract payment status.":"HEMIS boyınsha járdem alıń hám kontrakt tólemi jaǵdayın tekseriń.", "Open HEMIS website ↗":"Studentler ushın HEMIS saytın ashıw ↗", "Services":"Xızmetler", "2 services available":"2 xızmet bar", "Login help, password recovery and phone number changes":"Login boyınsha járdem, paroldi tiklew hám hemistegi telefon nomerińizdi ózgertiw", "Find payment details or report a discrepancy":"Tólem jaǵdayın tekseriw yaki kórinbey turǵan tólem haqqında xabar beriw", "Need help?":"Járdem kerek pe?", "Open HEMIS for account guidance or Contract to check your payment information.":"Akkaunt boyınsha járdem kerek bolsa HEMISti, kontrakt tólemin tekseriw ushın Kontrakt bólimin ashıń.",
+  "Home":"Bas bet", "HEMIS":"HEMIS", "Contract":"Kontrakt", "← Home":"← Bas bet", "Account assistance":"Akkaunt boyınsha járdem", "HEMIS services":"HEMIS xızmetleri", "Choose an option below. Account actions take place on the official website.":"Tómendegi bólimlerden birin tańlań. Akkauntıńız boyınsha basqa da ámellerdi rásmiy saytta orınlawıńızǵa boladı.", "Login credentials":"Login maǵlıwmatları", "Find your Hemis login details":"Hemis login maǵlıwmatların tabıw", "Password recovery":"Paroldi tiklew", "Instructions for recovering access":"Paroldi tiklew boyınsha kórsetpeler", "Change my phone at Hemis":"Hemistegi telefon nomerińizdi ózgertiw", "Request a phone number change":"Telefon nomerińizdi ózgertiwge soraw jiberiw", "← HEMIS services":"← Xızmetler", "Account":"Akkaunt", "Enter your ID to search for the associated HEMIS login details.":"HEMIS login maǵlıwmatların tabıw ushın ID seriya hám nomerin kiritiń.", "ID":"ID", "Search":"Izlew", "Search will be connected to the student dataset once the backend is ready.":"Studentler maǵlıwmatlar bazası arqalı izlew.", "Account recovery":"Akkaunttı tiklew", "On the official HEMIS website, use the menu shown below.":"Rásmiy HEMIS saytında tómendegi menyudan paydalanıń.", "Open the official HEMIS student website.":"Rásmiy HEMIS student saytın ashıń.", "Press the three-dot menu (⋮) in the top-right corner.":"Joqarı oń táreptegi úsh noqatlı menyudi (⋮) basıń.", "Select":"Tańlań", "Follow the instructions. An SMS will be sent to the phone number registered to your account.":"Kórsetpelerdi orınlań. Akkauntqa jalǵanǵan telefon nomerge SMS jiberiledi.", "If you no longer have access to the registered phone number, use “Change my phone”.":"Hemis akkauntıńızǵa jalǵanǵan telefon nomerińizden paydalanıw múmkinshiligi bolmasa, «Telefon nomerin ózgertiw» bólimin tańlań.", "Change my HEMIS phone number":"HEMIStegi telefon nomerińizdi ózgertiw", "Enter the new phone number you want linked to your HEMIS account.":"HEMIS akkauntıńızǵa jalǵamaqshı bolǵan nomerińizdi kiritiń.", "ID":"ID", "Enter two English letters followed by seven digits, e.g. AB1234567.":"Aldın 2 latın háribi, soń 7 cifrdı kiritiń. Mısalı: AB1234567.", "New phone number":"Taza telefon nomeri", "Enter the remaining 9 digits. The country code +998 is already included.":"Qalǵan 9 sandı kiritiń. +998 mámleket kodı aldınnan qosılǵan.", "Send request":"Arza jiberiw", "Your request to change the phone number has been made. The responsible administrator will review it.":"Telefon nomerin ózgertiw sorawıńız jiberildi. Juwapker shaxs tárepinen kórip shıǵadı.", "Tuition payments":"Kontrakt tólemleri", "Find your payment status or report an issue with your contract payment amount.":"Tólem jaǵdayın tekseriń yaki kontrakt tólemi tólegen pulıńız benen sáykes kelmese qátelik haqqında xabar beriń.", "Find contract":"Kontrakttı tabıw", "Enter your student ID to view payment status":"Tólem jaǵdayın kóriw ushın student ID kiritiń", "Discrepancy report":"Kontrakt muǵdarında sáykessizlik haqqında xabar beriw", "Report incorrect payment information":"Naduris tólem maǵlıwmatı haqqında xabar beriń", "← Contract":"← Kontrakt", "Payment lookup":"Tólem maǵlıwmatın izlew", "Enter your ID to find the associated contract payment information.":"Kontrakt tólemi maǵlıwmatın tabıw ushın ID kiritiń.", "Find payment status":"Tólem jaǵdayın tabıw", "Total contract amount, paid amount, and remaining balance will appear here once connected.":"Jámi kontrakt muǵdarı, tólengen summa hám qalǵan qarız usı jerde kórinedi.", "Contract support":"Kontrakt boyınsha járdem", "Enter your details and attach the supporting documents.":"Maǵlıwmatlarıńızdı kiritiń hám tastıyıqlawshı hújjetlerdi qosıń.", "Describe the discrepancy":"Sáykes bolmaǵan maǵlıwmat haqqında sıpatlama beriń", "1. Payment receipt":"1. Tólem kvitanciyası", "Upload the payment receipt (photo/PDF).":"Tólem kvitanciyasın júkleń (súwret/PDF).", "2. ID card — front side":"2. ID karta — aldıńǵı tárepi", "Upload the front side (photo/PDF).":"Aldıńǵı tárepin júkleń (súwret/PDF).", "3. ID card — back side":"3. ID karta — arqa tárepi", "Upload the back side (photo/PDF).":"Arqa tárepin júkleń (súwret/PDF).", "Request":"Arza jiberiw", "The prototype lets you select files, but does not upload or submit them yet.":"Bul nusqada fayllardı tańlaw múmkin, biraq júklenbeydi hám jiberilmeydi.",
+  "Open the bot in Telegram":"Bottı Telegramda ashıń", "To protect student information, this Mini App can only be opened from the bot bot after you share your own phone number.":"Student maǵlıwmatların qorǵaw ushın bul Mini App tek óz telefon nomerińizdi jiberip, botta dizimnen ótkennen keyin ashıladı.", "Registration required":"Dizimnen ótiw májbúriy", "Return to the bot and share your own phone number first.":"Aldın botqa qaytıp, ózińizdiń telefon nomerińizdi jiberiń.", "Could not verify access":"Kiriw múmkinshiligin tekseriw ilajı joq", "Please check your internet connection and reopen the Mini App from the bot.":"Internet bar joqlıǵın tekseriń hám Mini Apptı bottan qayta ashıń.", "Open this Mini App from the bot.":"Bul Mini Apptı bottan ashıń.", "Request failed. Please try again.":"Soraw ámelge asırılmadı. Qayta urınıp kóriń.", "Searching…":"Izlenbekte…", "Enter exactly two English letters followed by seven digits":"Aldın 2 latın háribi, soń 7 san kiritiń", "Enter a valid ID number, for example AB1234567.":"Durıs ID nomerin kiritiń, mısalı AB1234567.", "Enter a valid phone number containing 9 digits.":"9 sannan ibarat durıs telefon nomerin kiritiń.", "Failed to submit the request.":"Arzanı jiberiw imkanı bolmadı.", "Your phone-change request has been submitted successfully.":"Telefon nomerin ózgertiw arzańız tabıslı jiberildi.", "An error occurred. Please try again.":"Qátelik júz berdi. Qayta urınıń.", "No file selected":"Fayl tańlanbаǵan", "The report submission endpoint is not implemented yet. Your files have not been uploaded or sent.":"Xabardı jiberiw ámelge asırılmaǵan. Fayllarıńız júklenbedi hám jiberilmedi.", "Login:":"Login:", "Password:":"Parol:", "Total contract:":"Jámi kontrakt swmması:", "Paid:":"Tólengen:", "Remaining:":"Qalǵan:", "Payment:":"Tólem:", "Payment information reflects the data updated on:":"Tólem maǵlıwmatı jańalanǵan sáne:", "Unknown":"Belgisiz", "Open the bot":"Bottı ashıw", "Student portal":"Student portali", "Find":"Izlew", "Discrepancy Report":"Sáykessizlik haqqında xabar beriw", "Main Menu":"Bas menyu", "Help":"Járdem", "Back":"Artqa", "Cancel":"Biykar etiw", "Submit":"Jiberiw", "Please register first by sharing your own phone number.":"Dáslep telefon nomerińizdi jiberıw arqalı dizimnen ótiń.", "The service is temporarily unavailable. Please try again later.":"Xızmet waqıtsha islemey tur. Keyinirek qayta urıp kóriń."
+};
+const languageSelect = document.getElementById('language-select');
+const originalText = new WeakMap();
+const originalAttrs = new WeakMap();
+function translateText(value, lang) {
+  if (lang !== 'kk' || !value) return value;
+  const trimmed = value.trim();
+  if (Object.prototype.hasOwnProperty.call(translations, trimmed)) {
+    return value.replace(trimmed, translations[trimmed]);
+  }
+  // Translate known labels inside dynamic API results, preserving their values.
+  let translated = value;
+  for (const phrase of Object.keys(translations).sort((a, b) => b.length - a.length)) {
+    if (translated.includes(phrase)) translated = translated.split(phrase).join(translations[phrase]);
+  }
+  return translated;
+}
+function translateElementText(root, lang) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (!originalText.has(node)) originalText.set(node, node.nodeValue);
+    node.nodeValue = translateText(originalText.get(node), lang);
+  }
+  root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el => {
+    ['placeholder','title','aria-label'].forEach(attr => {
+      if (!el.hasAttribute(attr)) return;
+      let saved = originalAttrs.get(el);
+      if (!saved) { saved = {}; originalAttrs.set(el, saved); }
+      if (!(attr in saved)) saved[attr] = el.getAttribute(attr);
+      el.setAttribute(attr, translateText(saved[attr], lang));
+    });
+  });
+  document.documentElement.lang = lang === 'kk' ? 'kaa' : 'en';
+}
+function applyLanguage(lang) {
+  translateElementText(document.body, lang);
+  try { localStorage.setItem('ranchbot-language', lang); } catch (_) {}
+  languageSelect.value = lang;
+}
+let savedLanguage = 'en';
+try { savedLanguage = localStorage.getItem('ranchbot-language') || 'en'; } catch (_) {}
+const initialLanguage = savedLanguage === 'kk' ? 'kk' : 'en';
+applyLanguage(initialLanguage);
+languageSelect.addEventListener('change', () => applyLanguage(languageSelect.value));
+// Translate text added later by form handlers (API responses, status and validation messages).
+const languageObserver = new MutationObserver(records => {
+  const lang = languageSelect.value;
+  if (lang !== 'kk') return;
+  records.forEach(record => {
+    record.addedNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (!originalText.has(node)) originalText.set(node, node.nodeValue);
+        node.nodeValue = translateText(originalText.get(node), lang);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        translateElementText(node, lang);
+      }
+    });
+  });
+});
+languageObserver.observe(document.body, {childList:true, subtree:true});
+
 </script></body></html>
