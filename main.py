@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import asyncio
 import hashlib
 import hmac
@@ -18,7 +19,15 @@ from pydantic import BaseModel, Field
 import pymysql
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    UploadFile,
+)
 from fastapi.responses import FileResponse
 from telegram import (
     InlineKeyboardButton,
@@ -687,6 +696,161 @@ def get_credentials(student_id: str, _current_user: dict = Depends(require_regis
     if record is None:
         raise HTTPException(status_code=404, detail="No HEMIS credentials were found for this student ID.")
     return {"student_id": student_id, **record}
+
+@app.post("/api/contracts/discrepancy-report")
+async def submit_discrepancy_report(
+    student_id: str = Form(...),
+    details: str = Form(...),
+    receipt: UploadFile = File(...),
+    id_front: UploadFile = File(...),
+    id_back: UploadFile = File(...),
+    current_user: dict = Depends(require_registered_telegram_user),
+):
+    # 1. Check Telegram configuration
+    if GROUP_TGID == 0 or DISCR_TOPIC_ID <= 0:
+        raise HTTPException(
+            status_code=500,
+            detail="The discrepancy-report Telegram topic is not configured.",
+        )
+
+    if telegram_app is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Telegram bot is not initialized.",
+        )
+
+    # 2. Validate student ID
+    student_id = student_id.strip().upper()
+
+    if not STUDENT_ID_RE.fullmatch(student_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Enter a valid student ID: two letters followed by seven digits.",
+        )
+
+    # 3. Validate report description
+    details = details.strip()
+
+    if not details:
+        raise HTTPException(
+            status_code=400,
+            detail="Please describe the discrepancy.",
+        )
+
+    # 4. Require and validate all three files
+    required_files = [
+        ("Payment receipt", receipt),
+        ("ID card — front side", id_front),
+        ("ID card — back side", id_back),
+    ]
+
+    max_file_size = 20 * 1024 * 1024  # 20 MB per file
+    uploaded_files = []
+
+    for label, upload in required_files:
+        if not upload.filename:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Please upload the required file: {label}.",
+            )
+
+        filename = Path(upload.filename).name
+        suffix = Path(filename).suffix.lower()
+        content_type = (upload.content_type or "").lower()
+
+        if not (
+            suffix == ".pdf"
+            or content_type == "application/pdf"
+            or content_type.startswith("image/")
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=f"{label} must be an image or PDF.",
+            )
+
+        content = await upload.read(max_file_size + 1)
+
+        if not content:
+            raise HTTPException(
+                status_code=400,
+                detail=f"The uploaded file is empty: {label}.",
+            )
+
+        if len(content) > max_file_size:
+            raise HTTPException(
+                status_code=413,
+                detail=f"{label} exceeds the 20 MB file-size limit.",
+            )
+
+        uploaded_files.append((label, filename, content))
+
+    # 5. Get the registered Telegram user's information
+    telegram_id = current_user["tgid"]
+    current_phone = current_user.get("phone") or "Not provided"
+    telegram_user = current_user.get("telegram_user") or {}
+
+    full_name = (
+        f"{telegram_user.get('first_name', '')} "
+        f"{telegram_user.get('last_name', '')}"
+    ).strip() or "Not provided"
+
+    # 6. Escape user-provided text before using Telegram HTML formatting
+    safe_name = html.escape(full_name)
+    safe_phone = html.escape(str(current_phone))
+    safe_telegram_id = html.escape(str(telegram_id))
+    safe_student_id = html.escape(student_id)
+    safe_details = html.escape(details)
+
+    report_message = (
+        "<b>📄 Contract / Payment Discrepancy Report</b>\n\n"
+        f"👤 <b>Student:</b> {safe_name}\n"
+        f"🆔 <b>Student ID:</b> <code>{safe_student_id}</code>\n"
+        f"📱 <b>Phone:</b> <code>{safe_phone}</code>\n"
+        f"💬 <b>Telegram ID:</b> <code>{safe_telegram_id}</code>\n\n"
+        f"<b>Description:</b>\n{safe_details}\n\n"
+        "<b>Required documents:</b>\n"
+        "1. Payment receipt\n"
+        "2. ID card — front side\n"
+        "3. ID card — back side"
+    )
+
+    # 7. Send the report and documents to the configured topic
+    send_options = {
+        "chat_id": GROUP_TGID,
+        "message_thread_id": DISCR_TOPIC_ID,
+    }
+
+    try:
+        await telegram_app.bot.send_message(
+            **send_options,
+            text=report_message,
+            parse_mode="HTML",
+        )
+
+        for label, filename, content in uploaded_files:
+            await telegram_app.bot.send_document(
+                **send_options,
+                document=io.BytesIO(content),
+                filename=filename,
+                caption=label,
+            )
+
+    except Exception as exc:
+        logger.exception("Failed to send discrepancy report to Telegram")
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Telegram could not complete the report delivery. "
+                "Please contact support before submitting again."
+            ),
+        ) from exc
+
+    # 8. Return success to the Mini App
+    return {
+        "ok": True,
+        "message": "Your discrepancy report and all three documents were sent successfully.",
+    }
+
 
 @app.post("/api/hemis/phone-change")
 async def request_phone_change(

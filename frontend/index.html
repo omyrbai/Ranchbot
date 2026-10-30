@@ -42,7 +42,12 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <div class="uploadrow"><label for="receipt">1. Payment receipt</label><input type="file" id="receipt" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="receipt-name">Upload the payment receipt (photo or PDF).</div></div>
 <div class="uploadrow"><label for="id-front">2. ID card — front side</label><input type="file" id="id-front" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="front-name">Upload the front side (photo or PDF).</div></div>
 <div class="uploadrow"><label for="id-back">3. ID card — back side</label><input type="file" id="id-back" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="back-name">Upload the back side (photo or PDF).</div></div>
-<button class="primary">Review report</button><div class="statusbox" id="report-msg">The prototype lets you select files, but does not upload or submit them yet.</div></form></section>
+<button class="primary" type="submit" id="report-submit">
+    Send a request
+</button>
+<div class="statusbox" id="report-msg" role="status" aria-live="polite">
+    Complete all fields and attach all three required documents.
+</div></form></section>
 <nav class="bottom" aria-label="Main navigation"><button class="nav active" data-go="home"><span>⌂</span><span>Home</span></button><button class="nav" data-go="hemis"><span>🔐</span><span>HEMIS</span></button><button class="nav" data-go="contract"><span>▤</span><span>Contract</span></button></nav>
 </main>
 <script>
@@ -130,7 +135,129 @@ document.getElementById('find-form').addEventListener('submit', async e => {
     msg.textContent = error.message;
   }
 });
-document.getElementById('report-form').addEventListener('submit',e=>{e.preventDefault();document.getElementById('report-msg').textContent='The report submission endpoint is not implemented yet. Your files have not been uploaded or sent.'});
+document.getElementById('report-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const messageBox = document.getElementById('report-msg');
+    const submitButton = document.getElementById('report-submit');
+
+    const studentId = document
+        .getElementById('report-id')
+        .value
+        .trim()
+        .toUpperCase();
+
+    const details = document
+        .getElementById('report-details')
+        .value
+        .trim();
+
+    const receipt = document.getElementById('receipt').files[0];
+    const idFront = document.getElementById('id-front').files[0];
+    const idBack = document.getElementById('id-back').files[0];
+
+    // 1. Validate the student ID
+    if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
+        messageBox.textContent =
+            'Enter a valid student ID: two letters followed by seven digits.';
+        return;
+    }
+
+    // 2. Validate the description
+    if (!details) {
+        messageBox.textContent =
+            'Please describe the discrepancy before submitting.';
+        document.getElementById('report-details').focus();
+        return;
+    }
+
+    // 3. Require all three documents
+    if (!receipt || !idFront || !idBack) {
+        const missingFiles = [];
+
+        if (!receipt) {
+            missingFiles.push('payment receipt');
+        }
+
+        if (!idFront) {
+            missingFiles.push('ID card front side');
+        }
+
+        if (!idBack) {
+            missingFiles.push('ID card back side');
+        }
+
+        messageBox.textContent =
+            'Your report is incomplete. Please attach: ' +
+            missingFiles.join(', ') +
+            '.';
+
+        return;
+    }
+
+    // 4. Prepare the multipart request
+    const formData = new FormData();
+
+    formData.append('student_id', studentId);
+    formData.append('details', details);
+    formData.append('receipt', receipt);
+    formData.append('id_front', idFront);
+    formData.append('id_back', idBack);
+
+    try {
+        // Prevent repeated submissions while the request is processing
+        submitButton.disabled = true;
+        messageBox.textContent =
+            'Sending your report and documents. Please wait.';
+
+        const response = await fetch(
+            '/api/contracts/discrepancy-report',
+            {
+                method: 'POST',
+                headers: {
+                    'X-Telegram-Init-Data': telegramInitData
+                },
+                body: formData
+            }
+        );
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(
+                result.detail ||
+                result.message ||
+                'Failed to submit the discrepancy report.'
+            );
+        }
+
+        messageBox.textContent =
+            result.message ||
+            'Your discrepancy report was submitted successfully.';
+
+        form.reset();
+
+        // Reset the displayed filenames
+        document.getElementById('receipt-name').textContent =
+            'Upload the payment receipt (photo or PDF).';
+
+        document.getElementById('front-name').textContent =
+            'Upload the front side (photo or PDF).';
+
+        document.getElementById('back-name').textContent =
+            'Upload the back side (photo or PDF).';
+
+    } catch (error) {
+        console.error('Discrepancy report submission failed:', error);
+
+        messageBox.textContent =
+            error.message || 'An error occurred. Please try again.';
+
+    } finally {
+        submitButton.disabled = false;
+    }
+});
 const phoneInput=document.getElementById('phone-local');
 function formatUzPhone(value){
   const digits=value.replace(/\D/g,'').slice(0,9);
