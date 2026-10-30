@@ -715,7 +715,7 @@ async def request_phone_change(
     if phone_digits.startswith("998") and len(phone_digits) == 12:
         new_phone = f"+{phone_digits}"
     elif len(phone_digits) == 9:
-        new_phone = f"+998{phone_digits}"
+        new_phone = phone_digits
     else:
         raise HTTPException(
             status_code=400,
