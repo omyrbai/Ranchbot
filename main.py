@@ -713,7 +713,7 @@ async def request_phone_change(
     phone_digits = re.sub(r"\D", "", request.new_phone)
 
     if phone_digits.startswith("998") and len(phone_digits) == 12:
-        new_phone = f"+{phone_digits}"
+        new_phone = phone_digits[3:]
     elif len(phone_digits) == 9:
         new_phone = phone_digits
     else:
