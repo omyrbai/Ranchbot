@@ -39,7 +39,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <section class="screen" id="contract"><button class="back" data-go="home">← Home</button><div class="eyebrow">Tuition payments</div><h1>Contract</h1><p class="intro">Find your payment status or report an issue with your contract information.</p><div class="cards" style="margin-top:20px"><button class="card" data-go="find"><span class="ico blue">🔎</span><span class="ctitle">Find contract</span><span class="cdesc">Enter your student ID to view payment status</span></button><button class="card" data-go="report"><span class="ico orange">📝</span><span class="ctitle">Discrepancy report</span><span class="cdesc">Report incorrect payment information</span></button></div></section>
 <section class="screen" id="find"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Payment lookup</div><h1>Find contract</h1><p class="intro">Enter your student ID to find the associated contract payment information.</p><form class="panel" id="find-form"><label class="fieldlabel" for="student-id">Student ID</label><input type="text" id="student-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><button class="primary">Find payment status</button><div class="statusbox" id="find-msg">Total contract amount, paid amount, and remaining balance will appear here once connected.</div></form></section>
 <section class="screen" id="report"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Contract support</div><h1>Discrepancy report</h1><p class="intro">Enter your details and attach the supporting documents.</p><form class="panel" id="report-form"><label class="fieldlabel" for="report-id">Student ID</label><input type="text" id="report-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><label class="fieldlabel" for="report-details">Describe the discrepancy</label><textarea id="report-details" placeholder="Explain what is incorrect in your contract or payment details" required></textarea>
-<div class="uploadrow"><label for="receipt">1. Payment receipt</label><input type="file" id="receipt" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="receipt-name">Upload the payment receipt (photo or PDF).</div></div>
+<div class="uploadrow"><label for="receipt">1. Payment receipt</label><input type="file" id="receipt" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="receipt-name">Upload the payment receipt (photo/PDF).</div></div>
 <div class="uploadrow"><label for="id-front">2. ID card — front side</label><input type="file" id="id-front" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="front-name">Upload the front side (photo or PDF).</div></div>
 <div class="uploadrow"><label for="id-back">3. ID card — back side</label><input type="file" id="id-back" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="back-name">Upload the back side (photo or PDF).</div></div>
 <button class="primary" type="submit" id="report-submit">
@@ -249,13 +249,13 @@ document.getElementById('report-form').addEventListener('submit', async (event) 
 
         // Reset the displayed filenames
         document.getElementById('receipt-name').textContent =
-            'Upload the payment receipt (photo or PDF).';
+            'Upload the payment receipt (photo/PDF).';
 
         document.getElementById('front-name').textContent =
-            'Upload the front side (photo or PDF).';
+            'Upload the front side (photo/PDF).';
 
         document.getElementById('back-name').textContent =
-            'Upload the back side (photo or PDF).';
+            'Upload the back side (photo/PDF).';
 
     } catch (error) {
         console.error('Discrepancy report submission failed:', error);
