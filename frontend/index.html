@@ -222,13 +222,22 @@ document.getElementById('report-form').addEventListener('submit', async (event) 
             }
         );
 
-        const result = await response.json().catch(() => ({}));
+        const responseText = await response.text();
+
+        let result = {};
+
+        try {
+            result = JSON.parse(responseText);
+        } catch {
+            result = {
+                detail: responseText || 'The server returned an empty response.'
+            };
+        }
 
         if (!response.ok) {
             throw new Error(
-                result.detail ||
-                result.message ||
-                'Failed to submit the discrepancy report.'
+                `Request failed (${response.status}): ` +
+                (result.detail || result.message || 'Unknown server error.')
             );
         }
 
