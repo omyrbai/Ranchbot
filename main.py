@@ -63,7 +63,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 WEB_APP_URL = os.getenv("WEB_APP_URL", "https://regofis.shabyte.uz").strip().rstrip("/")
 GROUP_TGID = int(os.getenv("GR_TG_ID", "0"))
 PHONE_CHANGE_TOPIC_ID = int(os.getenv("PHONE_CHANGE_TOPIC_ID", "0"))
-
+DISCR_TOPIC_ID = int(os.getenv("DISCR_TOPIC_ID", "0"))
 TELEGRAM_INIT_DATA_MAX_AGE_SECONDS = int(
     os.getenv("TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "86400")
 )
