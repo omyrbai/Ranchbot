@@ -665,6 +665,68 @@ async def auth_me(current_user: dict = Depends(require_registered_telegram_user)
         "phone_verified": True,
     }
 
+@app.get("/api/student/me")
+def get_my_student_profile(
+    current_user: dict = Depends(require_registered_telegram_user)
+):
+    """Return the HEMIS profile matching the user's registered phone."""
+
+    dataset = load_json(GENERATED_DIR / "login.json")
+
+    if not dataset:
+        raise HTTPException(
+            status_code=503,
+            detail="HEMIS student data has not been uploaded yet."
+        )
+
+    def normalize_phone(value):
+        # Ignore +, spaces, hyphens, and other non-digit characters.
+        digits = re.sub(r"\D", "", str(value or ""))
+
+        # Compare the last 9 digits of Uzbek phone numbers.
+        return digits[-9:] if len(digits) >= 9 else digits
+
+    registered_phone = normalize_phone(current_user.get("phone"))
+
+    if not registered_phone:
+        raise HTTPException(
+            status_code=403,
+            detail="Your registered phone number is missing."
+        )
+
+    matches = [
+        record
+        for record in dataset.values()
+        if isinstance(record, dict)
+        and normalize_phone(
+            record.get("Phone", record.get("phone", ""))
+        ) == registered_phone
+    ]
+
+    if not matches:
+        raise HTTPException(
+            status_code=404,
+            detail="No HEMIS student record matches your registered phone number."
+        )
+
+    if len(matches) > 1:
+        raise HTTPException(
+            status_code=409,
+            detail="Multiple student records match your phone number. Please contact the administrator."
+        )
+
+    student = matches[0]
+
+    return {
+        "fullname": student.get("Fullname", ""),
+        "hemis_id": student.get("HemisID", ""),
+        "idnumber": student.get("Idnumber", ""),
+        "pinfl": student.get("PINFL", ""),
+        "phone": student.get("Phone", ""),
+        "group": student.get("Group", ""),
+        "form": student.get("Form", ""),
+        "tutor": student.get("Tutor", ""),
+    }
 
 def require_admin(x_admin_token: str | None) -> None:
     configured = settings.admin_upload_token
