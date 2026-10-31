@@ -21,7 +21,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 </style>
 </head>
 <body><section id="auth-gate" role="status" aria-live="polite"><div style="font-size:38px;margin-bottom:12px">🔐</div><h1>Checking access…</h1><p>Please wait while the bot verifies your Telegram registration.</p></section><main class="app">
-<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Regofisbot</div><div class="subtitle">Student services</div></div></div><div class="header-actions"><select id="language-select" class="language-select" aria-label="Select language"><option value="en">EN</option><option value="kk">KK</option></select><button class="avatar" id="profile-open" type="button" aria-label="My profile" title="My profile">S</button></div></header>
+<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Regofisbot</div><div class="subtitle">Student services</div></div></div><div class="header-actions"><select id="language-select" class="language-select" aria-label="Select language"><option value="en">EN</option><option value="kk">KK</option><option value="uz">UZ</option></select><button class="avatar" id="profile-open" type="button" aria-label="My profile" title="My profile">S</button></div></header>
 <section class="screen active" id="home">
 <div class="eyebrow">Student self-service</div><h1 id="home-greeting">Hello there 👋</h1><p class="intro">Choose what you need help with today.</p>
 <div class="hero"><small>Urganch RANCH University of Technology  · Nukus Campus
@@ -539,21 +539,22 @@ document.getElementById("phone-form").addEventListener("submit", async (event) =
 });
 document.querySelectorAll('input[type=file]').forEach(input=>input.addEventListener('change',()=>{const ids={receipt:'receipt-name','id-front':'front-name','id-back':'back-name'};document.getElementById(ids[input.id]).textContent=input.files&&input.files[0]?input.files[0].name:'No file selected'}));
 
-// English / Karakalpak (Latin) interface. API requests and Telegram authentication remain unchanged.
-let translations = {};
+// English, Karakalpak (Latin), and Uzbek interface. API requests and Telegram authentication remain unchanged.
+let translations = { kk: {}, uz: {} };
 const languageSelect = document.getElementById('language-select');
 const originalText = new WeakMap();
 const originalAttrs = new WeakMap();
 function translateText(value, lang) {
-  if (lang !== 'kk' || !value) return value;
+  if (lang === 'en' || !value) return value;
+  const dictionary = translations[lang] || {};
   const trimmed = value.trim();
-  if (Object.prototype.hasOwnProperty.call(translations, trimmed)) {
-    return value.replace(trimmed, translations[trimmed]);
+  if (Object.prototype.hasOwnProperty.call(dictionary, trimmed)) {
+    return value.replace(trimmed, dictionary[trimmed]);
   }
-  // Translate known labels inside dynamic API results, preserving their values.
+  // Translate known labels inside dynamic API results, preserving student-specific values.
   let translated = value;
-  for (const phrase of Object.keys(translations).sort((a, b) => b.length - a.length)) {
-    if (translated.includes(phrase)) translated = translated.split(phrase).join(translations[phrase]);
+  for (const phrase of Object.keys(dictionary).sort((a, b) => b.length - a.length)) {
+    if (translated.includes(phrase)) translated = translated.split(phrase).join(dictionary[phrase]);
   }
   return translated;
 }
@@ -573,7 +574,7 @@ function translateElementText(root, lang) {
       el.setAttribute(attr, translateText(saved[attr], lang));
     });
   });
-  document.documentElement.lang = lang === 'kk' ? 'kaa' : 'en';
+  document.documentElement.lang = lang === 'kk' ? 'kaa' : lang;
 }
 function applyLanguage(lang) {
   translateElementText(document.body, lang);
@@ -582,16 +583,16 @@ function applyLanguage(lang) {
 }
 let savedLanguage = 'en';
 try { savedLanguage = localStorage.getItem('ranchbot-language') || 'en'; } catch (_) {}
-const initialLanguage = savedLanguage === 'kk' ? 'kk' : 'en';
+const initialLanguage = ['en', 'kk', 'uz'].includes(savedLanguage) ? savedLanguage : 'en';
 fetch('./translations.json')
   .then(response => { if (!response.ok) throw new Error('Could not load translations.json'); return response.json(); })
-  .then(data => { translations = data; applyLanguage(initialLanguage); })
+  .then(data => { translations = { kk: data.kk || {}, uz: data.uz || {} }; applyLanguage(initialLanguage); })
   .catch(error => { console.error('Translation file could not be loaded:', error); applyLanguage(initialLanguage); });
 languageSelect.addEventListener('change', () => applyLanguage(languageSelect.value));
 // Translate text added later by form handlers (API responses, status and validation messages).
 const languageObserver = new MutationObserver(records => {
   const lang = languageSelect.value;
-  if (lang !== 'kk') return;
+  if (lang === 'en') return;
   records.forEach(record => {
     record.addedNodes.forEach(node => {
       if (node.nodeType === Node.TEXT_NODE) {
