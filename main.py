@@ -780,7 +780,9 @@ async def submit_discrepancy_report(
             status_code=400,
             detail="Payment date cannot be in the future.",
         )
-
+    print(f"Selected payment date: {parsed_payment_date}")
+    print(f"Server today: {today}")
+    print(f"Is future: {parsed_payment_date > today}")
     # If payment was made on Saturday or Sunday, move the
     # effective receipt date forward to the following Monday.
     receipt_date = parsed_payment_date
