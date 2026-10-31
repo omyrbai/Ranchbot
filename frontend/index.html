@@ -443,7 +443,7 @@
     const screens=[...document.querySelectorAll('.screen')],nav=[...document.querySelectorAll('.nav')];
     function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')||(id==='profile'&&n.dataset.go==='home')));window.scrollTo({top:0,behavior:'smooth'})}
     document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.go)));
-    function openHemis(){window.open('https://student.hemis.uz/','_blank','noopener,noreferrer')}
+    function openHemis(){window.open('https://student-nukus.utu-ranch.uz/dashboard/login','_blank','noopener,noreferrer')}
     document.getElementById('home-open-hemis').addEventListener('click',openHemis);document.getElementById('open-recovery').addEventListener('click',openHemis);
     document.getElementById('credentials-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -870,12 +870,15 @@
             // Clear the form after successful submission
             form.reset();
 
-        } catch (error) {
-            console.error("Phone-change request failed:", error);
+            } catch (error) {
+                console.error("Phone-change request failed:", error);
 
-            alert(error.message || "An error occurred. Please try again.");
+                successBox.textContent =
+                    error.message || "An error occurred. Please try again.";
 
-        } finally {
+                successBox.style.display = "block";
+
+            } finally {
             // Allow the user to submit again
             if (submitButton) {
                 submitButton.disabled = false;
