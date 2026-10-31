@@ -838,17 +838,13 @@ async def submit_discrepancy_report(
 
     report_message = (
         "🚨 <b>Discrepancy Report</b>\n\n"
-        f"👤 <b>Full Name (as entered):</b> {safe_name}\n"
-        f"📱 <b>Telegram Name:</b> {safe_telegram_name}\n"
-        f"🆔 <b>Student ID:</b> <code>{safe_student_id}</code>\n"
+        f"👤 <b>Arza beriwshi FIO:</b> {safe_name}\n"
+        f"📱 <b>Tg Akkaunt ati:</b> {safe_telegram_name}\n"
+        f"🆔 <b>ID nomeri:</b> <code>{safe_student_id}</code>\n"
         f"🪪 <b>PINFL:</b> <code>{safe_pinfl}</code>\n"
-        f"📱 <b>Phone:</b> <code>{safe_phone}</code>\n"
+        f"📱 <b>Tg Phone:</b> <code>{safe_phone}</code>\n"
         f"💬 <b>Telegram ID:</b> <code>{safe_telegram_id}</code>\n\n"
-        f"<b>Description:</b>\n{safe_details}\n\n"
-        "<b>Required documents:</b>\n"
-        "1. Payment receipt\n"
-        "2. ID card — front side\n"
-        "3. ID card — back side"
+        f"<b>Description:</b>\n{safe_details}"
     )
 
     # 7. Send the report and documents to the configured topic
@@ -1045,11 +1041,11 @@ async def request_phone_change(
 
     # 6. Build the Telegram message
     message = (
-        "<b>📱 Telefon nomerin ózgertiw ushın arza</b>\n\n"
-        f"📞 Házirgi telefon nomeri: <code>{safe_current_phone}</code>\n"
+        "<b>📱 Nomerin ózgertiw</b>\n\n"
+        f"📞 Arza beriwshi nomeri: <code>{safe_current_phone}</code>\n"
         f"🆔 Telegram ID: <code>{safe_telegram_id}</code>\n"
-        f"👤 Telegram ati: {safe_telegram_name}\n"
-        f"🪪 ID karta nomeri: <code>{safe_student_id}</code>\n\n"
+        f"👤 Tg akkaunt ati: {safe_telegram_name}\n"
+        f"🪪 ID nomeri: <code>{safe_student_id}</code>\n\n"
         f"Arza beriwshi <code>{safe_student_id}</code> telefon nomerin "
         f"<code>{safe_new_phone}</code> nomerine ózgertiwge arza berdi."
     )
