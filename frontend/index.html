@@ -456,13 +456,15 @@
         try {
             const data = await apiGet('/api/hemis/credentials/' + encodeURIComponent(id));
 
+            // Get the currently selected language
             const lang = localStorage.getItem('language') || 'en';
 
-            const notice =
-                translations[lang]?.hemis_password_notice ||
-                translations.en?.hemis_password_notice ||
-                '';
+            // Get the notice in the selected language
+            const notice = translations[lang]?.hemis_password_notice
+                || translations.en?.hemis_password_notice
+                || '';
 
+            // Display credentials and the translated notice
             msg.textContent =
                 'Login: ' + data.login +
                 '\nPassword: ' + data.password +
