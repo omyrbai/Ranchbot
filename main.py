@@ -10,7 +10,8 @@ import os
 import re
 import time
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import parse_qsl
@@ -75,6 +76,7 @@ WEB_APP_URL = os.getenv("WEB_APP_URL", "https://regofis.shabyte.uz").strip().rst
 GROUP_TGID = int(os.getenv("GR_TG_ID", "0"))
 PHONE_CHANGE_TOPIC_ID = int(os.getenv("PHONE_CHANGE_TOPIC_ID", "0"))
 DISCR_TOPIC_ID = int(os.getenv("DISCR_TOPIC_ID", "0"))
+RECEIPT_TOPIC_ID = int(os.getenv("RECEIPT_TOPIC_ID", "0"))
 TELEGRAM_INIT_DATA_MAX_AGE_SECONDS = int(
     os.getenv("TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "86400")
 )
@@ -713,6 +715,7 @@ async def submit_discrepancy_report(
     student_id: str = Form(...),
     full_name: str = Form(...),
     pinfl : str =  Form(...),
+    payment_date: str = Form(...),
     details: str = Form(...),
     receipt: UploadFile = File(...),
     id_front: UploadFile = File(...),
@@ -759,6 +762,55 @@ async def submit_discrepancy_report(
         raise HTTPException(
             status_code=400,
             detail="PINFL must contain exactly 14 digits.",
+        )
+
+    # Validate the payment date and apply the business-day rule.
+    try:
+        parsed_payment_date = date.fromisoformat(payment_date)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Please select a valid payment date.",
+        ) from exc
+
+    today = datetime.now(ZoneInfo("Asia/Tashkent")).date()
+
+    if parsed_payment_date > today:
+        raise HTTPException(
+            status_code=400,
+            detail="Payment date cannot be in the future.",
+        )
+
+    # If payment was made on Saturday or Sunday, move the
+    # effective receipt date forward to the following Monday.
+    receipt_date = parsed_payment_date
+
+    while receipt_date.weekday() >= 5:
+        receipt_date += timedelta(days=1)
+
+    if receipt_date > today:
+        raise HTTPException(
+            status_code=400,
+            detail="Payment date cannot be in the future.",
+        )
+
+    # Count elapsed business days, excluding Saturdays and Sundays.
+    business_days_elapsed = 0
+    current_date = receipt_date
+
+    while current_date < today:
+        current_date += timedelta(days=1)
+
+        if current_date.weekday() < 5:
+            business_days_elapsed += 1
+
+    if business_days_elapsed < 4:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Discrepancy reports can only be submitted "
+                "at least 4 business days after the payment date."
+            ),
         )
 
     # 3. Validate report description
@@ -842,6 +894,7 @@ async def submit_discrepancy_report(
         f"📱 <b>Tg akkaunt:</b> {safe_telegram_name}\n"
         f"🆔 <b>ID nomeri:</b> <code>{safe_student_id}</code>\n"
         f"🪪 <b>PINFL:</b> <code>{safe_pinfl}</code>\n"
+        f"📅 <b>Tólem sánesi:</b><code>{receipt_date.isoformat()}</code>\n"
         f"📱 <b>Tg nomeri:</b> <code>{safe_phone}</code>\n"
         f"💬 <b>Tg ID:</b> <code>{safe_telegram_id}</code>\n\n"
         f"<b>Sipatlama:</b>\n{safe_details}"
@@ -965,7 +1018,7 @@ async def submit_contract_receipt(
         f"📞 <b>Nomeri:</b> <code>{html.escape(str(current_phone))}</code>\n"
         f"💬 <b>Tg ID:</b> <code>{html.escape(str(telegram_id))}</code>"
     )
-    send_options = {"chat_id": GROUP_TGID, "message_thread_id": DISCR_TOPIC_ID}
+    send_options = {"chat_id": GROUP_TGID, "message_thread_id": RECEIPT_TOPIC_ID}
 
     try:
         await telegram_app.bot.send_message(

@@ -184,9 +184,11 @@
     "phone_change_failed": "Failed to submit the request. Please try again.",
     "phone_change_invalid_id": "Invalid identification number format.",
     "phone_change_invalid_phone": "Invalid phone number. Enter 9 digits.",
-    "phone_change_group_not_configured": "Phone-change group is not configured."
+    "phone_change_group_not_configured": "Phone-change group is not configured.",
+    "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "Discrepancy reports can only be submitted at least 4 business days after the payment date."
   },
   "kk": {
+    "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "Tólem sánesinen keyin keminde 4 jumıs kúni ótkennen soń sáykesizlik haqqında arza jiberiwge boladı.",
     "Student services": "Student xızmetleri",
     "Checking access…": "Kiriw tekserilmekte…",
     "Please wait while the bot verifies your Telegram registration.": "Bot dizimnen ótiwińizdi tekserip atır. Kútiń.",
@@ -558,6 +560,7 @@
     "phone_change_failed": "Arizani yuborib bo‘lmadi. Iltimos, qayta urinib ko‘ring.",
     "phone_change_invalid_id": "ID raqami formati noto‘g‘ri.",
     "phone_change_invalid_phone": "Telefon raqami noto‘g‘ri. 9 ta raqam kiriting.",
-    "phone_change_group_not_configured": "Telefon raqamini o‘zgartirish guruhi sozlanmagan."
+    "phone_change_group_not_configured": "Telefon raqamini o‘zgartirish guruhi sozlanmagan.",
+    "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "To‘lov sanasidan keyin kamida 4 ish kuni o‘tgach nomuvofiqlik haqida ariza yuborish mumkin."
   }
 }

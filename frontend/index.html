@@ -236,7 +236,22 @@
                     required
                     title="PINFL must contain exactly 14 digits"
                     type="text"
-            ><label class="fieldlabel" for="report-details">Describe the discrepancy</label><textarea
+            >
+            <label
+                    class="fieldlabel"
+                    data-i18n="payment_date"
+                    for="report-payment-date"
+            >
+                Payment date
+            </label>
+
+            <input
+                    id="report-payment-date"
+                    name="payment_date"
+                    required
+                    type="date"
+            >
+            <label class="fieldlabel" for="report-details">Describe the discrepancy</label><textarea
                     id="report-details" placeholder="Explain what is incorrect in your contract or payment details"
                     required></textarea>
             <div class="uploadrow"><label for="receipt">1. Payment receipt</label>
@@ -603,6 +618,10 @@
         formData.append('student_id', studentId);
         formData.append('full_name', fullName);
         formData.append('pinfl', pinfl);
+        formData.append(
+            'payment_date',
+            document.getElementById('report-payment-date').value
+        );
         formData.append('details', details);
         formData.append('receipt', receipt);
         formData.append('id_front', idFront);
