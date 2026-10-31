@@ -873,11 +873,22 @@
             } catch (error) {
                 console.error("Phone-change request failed:", error);
 
+                const lang = languageSelect.value;
+                const dictionary = translations[lang] || translations.en;
+
+                const messageKey = {
+                    "Invalid identification number format.": "phone_change_invalid_id",
+                    "Invalid phone number. Enter 9 digits.": "phone_change_invalid_phone",
+                    "Phone-change group is not configured.": "phone_change_group_not_configured"
+                };
+
+                const detail = error.message || "";
+                const key = messageKey[detail] || "phone_change_failed";
+
                 successBox.textContent =
-                    error.message || "An error occurred. Please try again.";
+                    dictionary[key] || translations.en.phone_change_failed;
 
                 successBox.style.display = "block";
-
             } finally {
             // Allow the user to submit again
             if (submitButton) {

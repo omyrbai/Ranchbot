@@ -1033,13 +1033,10 @@ async def request_phone_change(
 
     first_name = telegram_user.get("first_name", "")
     last_name = telegram_user.get("last_name", "")
-    telegram_name = f"{first_name} {last_name}".strip()
 
-    if not telegram_name:
-        telegram_name = "Not provided"
+    telegram_name = f"{first_name} {last_name}".strip() or "Not provided"
 
     # 5. Escape values before inserting them into HTML
-    safe_name = html.escape(telegram_name)
     safe_telegram_name = html.escape(telegram_name)
     safe_current_phone = html.escape(str(current_phone))
     safe_telegram_id = html.escape(str(telegram_id))
@@ -1051,7 +1048,7 @@ async def request_phone_change(
         "<b>📱 Telefon nomerin ózgertiw ushın arza</b>\n\n"
         f"📞 Házirgi telefon nomeri: <code>{safe_current_phone}</code>\n"
         f"🆔 Telegram ID: <code>{safe_telegram_id}</code>\n"
-        f"👤 Tolıq atı: {safe_name}\n"
+        f"👤 Telegram ati: {safe_telegram_name}\n"
         f"🪪 ID karta nomeri: <code>{safe_student_id}</code>\n\n"
         f"Arza beriwshi <code>{safe_student_id}</code> telefon nomerin "
         f"<code>{safe_new_phone}</code> nomerine ózgertiwge arza berdi."
