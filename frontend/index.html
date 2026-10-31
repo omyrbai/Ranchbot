@@ -21,9 +21,9 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 </style>
 </head>
 <body><section id="auth-gate" role="status" aria-live="polite"><div style="font-size:38px;margin-bottom:12px">🔐</div><h1>Checking access…</h1><p>Please wait while the bot verifies your Telegram registration.</p></section><main class="app">
-<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Regofisbot</div><div class="subtitle">Student services</div></div></div><div class="header-actions"><select id="language-select" class="language-select" aria-label="Select language"><option value="en">EN</option><option value="kk">KK</option></select><div class="avatar">S</div></div></header>
+<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Regofisbot</div><div class="subtitle">Student services</div></div></div><div class="header-actions"><select id="language-select" class="language-select" aria-label="Select language"><option value="en">EN</option><option value="kk">KK</option></select><button class="avatar" id="profile-open" type="button" aria-label="My profile" title="My profile">S</button></div></header>
 <section class="screen active" id="home">
-<div class="eyebrow">Student self-service</div><h1>Hello there 👋</h1><p class="intro">Choose what you need help with today.</p>
+<div class="eyebrow">Student self-service</div><h1 id="home-greeting">Hello there 👋</h1><p class="intro">Choose what you need help with today.</p>
 <div class="hero"><small>Urganch RANCH University of Technology  · Nukus Campus
     STUDENT PORTAL</small><h2>Your student services,<br>in one place.</h2><p>Access HEMIS guidance and check your contract payment status.</p><button class="lightbtn" id="home-open-hemis">Open HEMIS website ↗</button></div>
 <div class="sectionhead"><h2>Services</h2><span>2 services available</span></div><div class="cards">
@@ -31,6 +31,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <button class="card" data-go="contract"><span class="ico green">💳</span><span class="ctitle">Contract</span><span class="cdesc">Find payment details or report a discrepancy</span></button></div>
 <div class="tip"><div>🛡️</div><div><strong>Need help?</strong><p>Open HEMIS for account guidance or Contract to check your payment information.</p></div></div>
 </section>
+<section class="screen" id="profile"><button class="back" data-go="home">← Home</button><div class="eyebrow">Student account</div><h1>My profile</h1><p class="intro">Your information from the HEMIS student list.</p><div class="panel" id="profile-panel"><div class="statusbox" id="profile-msg">Loading your profile…</div><div id="profile-details" style="display:none"></div></div></section>
 <section class="screen" id="hemis"><button class="back" data-go="home">← Home</button><div class="eyebrow">Account assistance</div><h1>HEMIS services</h1><p class="intro">Choose an option below. Account actions take place on the official website.</p>
 <div class="cards" style="margin-top:20px"><button class="card" data-go="hemis-login"><span class="ico blue">🔑</span><span class="ctitle">Login credentials</span><span class="cdesc">Find your student ID details</span></button><button class="card" data-go="password"><span class="ico orange">🔓</span><span class="ctitle">Password recovery</span><span class="cdesc">Instructions for recovering access</span></button><button class="card" data-go="phone" style="grid-column:1/-1;min-height:125px"><span class="ico purple">📱</span><span class="ctitle">Change my phone</span><span class="cdesc">Request a phone number change</span></button></div></section>
 <section class="screen" id="hemis-login"><button class="back" data-go="hemis">← HEMIS services</button><div class="eyebrow">Student account</div><h1>Login credentials</h1><p class="intro">Enter your student ID to search for the associated HEMIS login details.</p><form class="panel" id="credentials-form"><label class="fieldlabel" for="hemis-id">Student ID</label><input type="text" id="hemis-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false" required><button class="primary">Search</button><div class="statusbox" id="credentials-msg">Search will be connected to the student dataset once the backend is ready.</div></form></section>
@@ -49,7 +50,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
     required
 >
 
-<label class="fieldlabel" for="report-pinfl">PINFL / JSHSHIR</label>
+<label class="fieldlabel" for="report-pinfl">PINFL</label>
 <input
     type="text"
     id="report-pinfl"
@@ -70,7 +71,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <div class="statusbox" id="report-msg" role="status" aria-live="polite">
     Complete all fields and attach all three required documents.
 </div></form></section>
-<section class="screen" id="receipt-submit"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Tuition payments</div><h1>Send payment receipt</h1><p class="intro">Enter your details and attach your payment receipt.</p><form class="panel" id="receipt-form"><label class="fieldlabel" for="receipt-student-id">Student ID / ID number</label><input type="text" id="receipt-student-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false"><label class="fieldlabel" for="receipt-fullname">Full Name</label><input type="text" id="receipt-fullname" name="full_name" placeholder="Enter your full name" autocomplete="name" maxlength="150" required><label class="fieldlabel" for="receipt-pinfl">PINFL / JSHSHIR</label><input type="text" id="receipt-pinfl" name="pinfl" placeholder="Enter your 14-digit PINFL" inputmode="numeric" maxlength="14" pattern="[0-9]{14}" title="PINFL must contain exactly 14 digits" required><div class="uploadrow"><label for="receipt-file">Payment receipt</label><input type="file" id="receipt-file" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="receipt-file-name">Upload the payment receipt (photo/PDF).</div></div><button class="primary" type="submit" id="receipt-submit-button">Send receipt</button><div class="statusbox" id="receipt-msg" role="status" aria-live="polite">Enter your details and attach the receipt to submit.</div></form></section>
+<section class="screen" id="receipt-submit"><button class="back" data-go="contract">← Contract</button><div class="eyebrow">Tuition payments</div><h1>Send payment receipt</h1><p class="intro">Enter your details and attach your payment receipt.</p><form class="panel" id="receipt-form"><label class="fieldlabel" for="receipt-student-id">Student ID / ID number</label><input type="text" id="receipt-student-id" required placeholder="Enter ID (e.g. AB1234567)" maxlength="9" pattern="[A-Za-z]{2}[0-9]{7}" title="Enter exactly two English letters followed by seven digits" autocapitalize="characters" spellcheck="false"><label class="fieldlabel" for="receipt-fullname">Full Name</label><input type="text" id="receipt-fullname" name="full_name" placeholder="Enter your full name" autocomplete="name" maxlength="150" required><label class="fieldlabel" for="receipt-pinfl">PINFL</label><input type="text" id="receipt-pinfl" name="pinfl" placeholder="Enter your 14-digit PINFL" inputmode="numeric" maxlength="14" pattern="[0-9]{14}" title="PINFL must contain exactly 14 digits" required><div class="uploadrow"><label for="receipt-file">Payment receipt</label><input type="file" id="receipt-file" accept="image/*,.pdf,application/pdf" required><div class="filehint" id="receipt-file-name">Upload the payment receipt (photo/PDF).</div></div><button class="primary" type="submit" id="receipt-submit-button">Send receipt</button><div class="statusbox" id="receipt-msg" role="status" aria-live="polite">Enter your details and attach the receipt to submit.</div></form></section>
 <nav class="bottom" aria-label="Main navigation"><button class="nav active" data-go="home"><span>⌂</span><span>Home</span></button><button class="nav" data-go="hemis"><span>🔐</span><span>HEMIS</span></button><button class="nav" data-go="contract"><span>▤</span><span>Contract</span></button></nav>
 </main>
 <script>
@@ -99,6 +100,14 @@ async function verifyAccess() {
     }
     document.body.classList.add('auth-ready');
     authGate.style.display = 'none';
+    try {
+      const student = await apiGet('/api/student/me');
+      document.getElementById('home-greeting').textContent = `Hello, ${student.fullname} 👋`;
+      document.getElementById('profile-open').textContent = (student.fullname || 'S').trim().charAt(0).toUpperCase() || 'S';
+    } catch (profileError) {
+      // Keep the Mini App usable if no unique HEMIS profile is matched yet.
+      console.info('HEMIS profile not available:', profileError.message);
+    }
   } catch (error) {
     showAuthGate('Could not verify access', 'Please check your internet connection and reopen the Mini App from the bot.');
   }
@@ -111,8 +120,48 @@ async function apiGet(path) {
   if (!response.ok) throw new Error(payload.detail || 'Request failed. Please try again.');
   return payload;
 }
+
+const profileOpenButton = document.getElementById('profile-open');
+profileOpenButton.addEventListener('click', async () => {
+  show('profile');
+  const msg = document.getElementById('profile-msg');
+  const details = document.getElementById('profile-details');
+  msg.style.display = 'block';
+  msg.textContent = 'Loading your profile…';
+  details.style.display = 'none';
+  try {
+    const student = await apiGet('/api/student/me');
+    document.getElementById('home-greeting').textContent = `Hello, ${student.fullname} 👋`;
+    profileOpenButton.textContent = (student.fullname || 'S').trim().charAt(0).toUpperCase() || 'S';
+    const fields = [
+      ['Full name', student.fullname],
+      ['HEMIS ID', student.hemis_id],
+      ['Student ID', student.idnumber],
+      ['PINFL', student.pinfl],
+      ['Phone', student.phone],
+      ['Group', student.group]
+    ];
+    details.replaceChildren();
+    fields.forEach(([label, value]) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:12px 0;border-bottom:1px solid var(--line)';
+      const name = document.createElement('div');
+      name.style.cssText = 'font-size:11px;color:var(--muted);margin-bottom:5px';
+      name.textContent = label;
+      const val = document.createElement('div');
+      val.style.cssText = 'font-size:14px;font-weight:700;overflow-wrap:anywhere';
+      val.textContent = value || '—';
+      row.append(name, val);
+      details.appendChild(row);
+    });
+    msg.style.display = 'none';
+    details.style.display = 'block';
+  } catch (error) {
+    msg.textContent = error.message || 'Could not load your profile.';
+  }
+});
 const screens=[...document.querySelectorAll('.screen')],nav=[...document.querySelectorAll('.nav')];
-function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')));window.scrollTo({top:0,behavior:'smooth'})}
+function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')||(id==='profile'&&n.dataset.go==='home')));window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.go)));
 function openHemis(){window.open('https://student.hemis.uz/','_blank','noopener,noreferrer')}
 document.getElementById('home-open-hemis').addEventListener('click',openHemis);document.getElementById('open-recovery').addEventListener('click',openHemis);
