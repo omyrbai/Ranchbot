@@ -177,7 +177,8 @@
     "payment_amount": "Payment amount",
     "payment_amount_placeholder": "e.g. 1 500 000,50",
     "Please select the payment date.": "Please select the payment date.",
-    "Please enter a valid payment amount greater than zero.": "Please enter a valid payment amount greater than zero."
+    "Please enter a valid payment amount greater than zero.": "Please enter a valid payment amount greater than zero.",
+    "contract_balance_hint": "Total contract amount, paid amount, and remaining balance will appear here once connected."
   },
   "kk": {
     "Student services": "Student xızmetleri",
@@ -357,7 +358,8 @@
     "payment_amount": "Tólem muǵdarı",
     "payment_amount_placeholder": "Mısalı: 1 500 000,50",
     "Please select the payment date.": "Tólem sanasın tańlań.",
-    "Please enter a valid payment amount greater than zero.": "Tólem muǵdarın durıs kiritiń (0 den úlken bolıwı kerek)."
+    "Please enter a valid payment amount greater than zero.": "Tólem muǵdarın durıs kiritiń (0 den úlken bolıwı kerek).",
+    "contract_balance_hint": "Jámi kontrakt muǵdarı, tólengen summa hám qalǵan qarız usı jerde kórinedi."
   },
   "uz": {
     "Student services": "Talabalar xizmatlari",
@@ -537,6 +539,7 @@
     "payment_amount": "To‘lov summasi",
     "payment_amount_placeholder": "Masalan: 1 500 000,50",
     "Please select the payment date.": "To‘lov sanasini tanlang.",
-    "Please enter a valid payment amount greater than zero.": "To‘lov summasini to‘g‘ri kiriting (0 dan katta bo‘lishi kerak)."
+    "Please enter a valid payment amount greater than zero.": "To‘lov summasini to‘g‘ri kiriting (0 dan katta bo‘lishi kerak).",
+    "contract_balance_hint": "Ulangandan so‘ng kontraktning umumiy summasi, to‘langan summa va qolgan qarz shu yerda ko‘rsatiladi."
   }
 }
