@@ -451,23 +451,24 @@
         const msg = document.getElementById('credentials-msg');
         const id = document.getElementById('hemis-id').value.trim().toUpperCase();
 
-        msg.textContent = 'Searching…';
+        msg.textContent = translations[languageSelect.value]?.['Searching…'] || 'Searching…';
 
         try {
             const data = await apiGet('/api/hemis/credentials/' + encodeURIComponent(id));
 
-            // Get the currently selected language
-            const lang = localStorage.getItem('language') || 'en';
+            // Read the currently selected language
+            const lang = languageSelect.value;
+            const dictionary = translations[lang] || translations.en;
 
-            // Get the notice in the selected language
-            const notice = translations[lang]?.hemis_password_notice
-                || translations.en?.hemis_password_notice
-                || '';
+            // Get translated labels and notice
+            const loginLabel = dictionary['Login: '] || 'Login: ';
+            const passwordLabel = dictionary['Password: '] || 'Password: ';
+            const notice = dictionary['hemis_password_notice'] || '';
 
-            // Display credentials and the translated notice
+            // Display credentials and the notice in the selected language
             msg.textContent =
-                'Login: ' + data.login +
-                '\nPassword: ' + data.password +
+                loginLabel + data.login +
+                '\n' + passwordLabel + data.password +
                 (notice ? '\n\n' + notice : '');
 
             msg.style.whiteSpace = 'pre-line';
