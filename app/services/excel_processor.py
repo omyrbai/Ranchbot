@@ -42,31 +42,71 @@ def _decimal(value: Any, row_num: int, column_name: str) -> Decimal:
     return result
 
 def parse_credentials(file_bytes: bytes) -> dict[str, dict[str, str]]:
+    """Parse HEMIS student data from columns A:H; row 1 is ignored.
+
+    Expected order: HemisID, Fullname, PINFL, Idnumber, Phone, Group, Form, Tutor.
+    Records are indexed by Idnumber so the existing student-ID lookup can use them.
+    """
     try:
         wb = load_workbook(BytesIO(file_bytes), read_only=True, data_only=True)
     except Exception as exc:
-        raise WorkbookValidationError("Could not read this Excel workbook. Please upload a valid .xlsx file.") from exc
+        raise WorkbookValidationError(
+            "Could not read this Excel workbook. Please upload a valid .xlsx file."
+        ) from exc
+
     if not wb.worksheets:
         raise WorkbookValidationError("The workbook has no worksheets.")
+
     ws = wb.worksheets[0]
     result: dict[str, dict[str, str]] = {}
+
+    def cell_text(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value).strip()
+
     try:
-        for row_num, row in enumerate(ws.iter_rows(min_row=2, min_col=1, max_col=2, values_only=True), start=2):
-            login_value, password_value = row
-            login = _cell_text(login_value)
-            password = _cell_text(password_value).upper()
-            if not login and not password:
+        for row_num, row in enumerate(
+            ws.iter_rows(min_row=2, min_col=1, max_col=8, values_only=True),
+            start=2,
+        ):
+            if all(value is None or str(value).strip() == "" for value in row):
                 continue
-            if not login:
-                raise WorkbookValidationError(f"Row {row_num}: HEMIS login (column A) is empty.")
-            student_id = _student_id(password_value, row_num)
+
+            hemis_id, fullname, pinfl_value, idnumber_value, phone, group, form, tutor = row
+            record = {
+                "HemisID": cell_text(hemis_id),
+                "Fullname": cell_text(fullname),
+                "PINFL": cell_text(pinfl_value),
+                "Idnumber": cell_text(idnumber_value).upper(),
+                "Phone": cell_text(phone),
+                "Group": cell_text(group),
+                "Form": cell_text(form),
+                "Tutor": re.sub(r"\s+", " ", cell_text(tutor)).strip(),
+            }
+            if not record["HemisID"]:
+                raise WorkbookValidationError(f"Row {row_num}: HemisID (column A) is empty.")
+            if not record["Fullname"]:
+                raise WorkbookValidationError(f"Row {row_num}: Fullname (column B) is empty.")
+            if not re.fullmatch(r"\d{14}", record["PINFL"]):
+                raise WorkbookValidationError(f"Row {row_num}: PINFL must contain exactly 14 digits.")
+            student_id = _student_id(record["Idnumber"], row_num)
             if student_id in result:
-                raise WorkbookValidationError(f"Row {row_num}: duplicate student ID {student_id}.")
-            result[student_id] = {"login": login, "password": password}
+                raise WorkbookValidationError(f"Row {row_num}: duplicate Idnumber {student_id}.")
+            if not record["Phone"]:
+                raise WorkbookValidationError(f"Row {row_num}: Phone (column E) is empty.")
+
+            # Keep legacy keys so any existing callers do not fail.
+            record["login"] = record["HemisID"]
+            record["password"] = ""
+            result[student_id] = record
     finally:
         wb.close()
+
     if not result:
-        raise WorkbookValidationError("No credential records found from row 2 onward.")
+        raise WorkbookValidationError("No HEMIS student records found from row 2 onward.")
     return result
 
 def parse_contracts(file_bytes: bytes) -> dict[str, dict[str, int | float]]:

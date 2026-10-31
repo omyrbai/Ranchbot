@@ -236,7 +236,8 @@ async def upload_hemis_command(
     await message.reply_text(
         "📄 HEMIS upload selected.\n\n"
         "Please send the HEMIS Excel file as a document (.xlsx).\n"
-        "The first sheet must contain student login and password data."
+        "The first sheet must contain these columns in order: HemisID, Fullname, PINFL, Idnumber, Phone, Group, Form, Tutor.\n"
+        "The first row is treated as a header and ignored."
     )
 
 
@@ -316,11 +317,13 @@ async def receive_admin_excel(
             )
             return
 
-        # Parse and validate BEFORE replacing the existing dataset.
         if upload_type == "hemis":
-            dataset = await asyncio.to_thread(parse_credentials, content)
             destination = GENERATED_DIR / "login.json"
-            dataset_name = "HEMIS credentials"
+            # Clear the previous HEMIS JSON before rebuilding from this in-memory upload.
+            # The Excel workbook is never saved to the server.
+            destination.unlink(missing_ok=True)
+            dataset = await asyncio.to_thread(parse_credentials, content)
+            dataset_name = "HEMIS student data"
 
         else:
             dataset = await asyncio.to_thread(parse_contracts, content)
@@ -463,7 +466,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             dataset = load_json(GENERATED_DIR / "login.json")
             record = dataset.get(student_id) if dataset else None
             if record:
-                await message.reply_text(f"Login: {record['login']}\nPassword: {record['password']}", reply_markup=main_menu_keyboard())
+                await message.reply_text(
+                    f"HEMIS ID: {record.get('HemisID', record.get('login', ''))}\n"
+                    f"Full name: {record.get('Fullname', '')}\n"
+                    f"PINFL: {record.get('PINFL', '')}\n"
+                    f"Student ID: {record.get('Idnumber', student_id)}\n"
+                    f"Phone: {record.get('Phone', '')}\n"
+                    f"Group: {record.get('Group', '')}\n"
+                    f"Form: {record.get('Form', '')}\n"
+                    f"Tutor: {record.get('Tutor', '')}",
+                    reply_markup=main_menu_keyboard(),
+                )
             else:
                 await message.reply_text("No HEMIS record was found for that student ID.", reply_markup=main_menu_keyboard())
     elif text == "💳 Contract":
@@ -677,12 +690,16 @@ async def read_upload(file: UploadFile) -> bytes:
 async def upload_hemis(file: UploadFile = File(...), x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")):
     require_admin(x_admin_token)
     content = await read_upload(file)
+    destination = GENERATED_DIR / "login.json"
+    # Clear the previous HEMIS JSON before rebuilding from this in-memory upload.
+    # The uploaded Excel file is never saved to disk.
+    destination.unlink(missing_ok=True)
     try:
         dataset = parse_credentials(content)
     except WorkbookValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    atomic_write_json(GENERATED_DIR / "login.json", dataset)
-    return {"ok": True, "message": "HEMIS credentials dataset updated.", "records": len(dataset)}
+    atomic_write_json(destination, dataset)
+    return {"ok": True, "message": "HEMIS student dataset updated.", "records": len(dataset)}
 
 
 @app.post("/api/admin/upload/contracts")
