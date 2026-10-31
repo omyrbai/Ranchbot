@@ -1033,13 +1033,13 @@ async def request_phone_change(
 
     first_name = telegram_user.get("first_name", "")
     last_name = telegram_user.get("last_name", "")
-    full_name = f"{first_name} {last_name}".strip()
+    telegram_name = f"{first_name} {last_name}".strip()
 
-    if not full_name:
-        full_name = "Not provided"
+    if not telegram_name:
+        telegram_name = "Not provided"
 
     # 5. Escape values before inserting them into HTML
-    safe_name = html.escape(full_name)
+    safe_name = html.escape(telegram_name)
     safe_telegram_name = html.escape(telegram_name)
     safe_current_phone = html.escape(str(current_phone))
     safe_telegram_id = html.escape(str(telegram_id))
