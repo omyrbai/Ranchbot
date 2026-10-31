@@ -285,6 +285,10 @@
                                                                                    for="receipt-pinfl">PINFL</label><input
                 type="text" id="receipt-pinfl" name="pinfl" placeholder="Enter your 14-digit PINFL" inputmode="numeric"
                 maxlength="14" pattern="[0-9]{14}" title="PINFL must contain exactly 14 digits" required>
+            <label class="fieldlabel" for="receipt-payment-date">Payment date</label>
+            <input type="date" id="receipt-payment-date" name="payment_date" required>
+            <label class="fieldlabel" for="receipt-payment-amount">Payment amount</label>
+            <input type="number" id="receipt-payment-amount" name="amount" min="0.01" step="0.01" inputmode="decimal" placeholder="Enter payment amount" required>
             <div class="uploadrow"><label for="receipt-file">Payment receipt</label>
                 <div class="file-picker"><label class="file-picker-button" for="receipt-file">Choose file</label><span
                         class="file-picker-name" id="receipt-file-chosen">No file selected</span><input type="file"
@@ -631,6 +635,8 @@
         const studentId = document.getElementById('receipt-student-id').value.trim().toUpperCase();
         const fullName = document.getElementById('receipt-fullname').value.trim();
         const pinfl = document.getElementById('receipt-pinfl').value.trim();
+        const paymentDate = document.getElementById('receipt-payment-date').value;
+        const paymentAmount = document.getElementById('receipt-payment-amount').value.trim();
         const receiptFile = document.getElementById('receipt-file').files[0];
 
         if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
@@ -648,6 +654,16 @@
             document.getElementById('receipt-pinfl').focus();
             return;
         }
+        if (!paymentDate) {
+            messageBox.textContent = 'Please select the payment date.';
+            document.getElementById('receipt-payment-date').focus();
+            return;
+        }
+        if (!paymentAmount || !Number.isFinite(Number(paymentAmount)) || Number(paymentAmount) <= 0) {
+            messageBox.textContent = 'Please enter a valid payment amount.';
+            document.getElementById('receipt-payment-amount').focus();
+            return;
+        }
         if (!receiptFile) {
             messageBox.textContent = 'Please attach your payment receipt.';
             return;
@@ -657,6 +673,8 @@
         formData.append('student_id', studentId);
         formData.append('full_name', fullName);
         formData.append('pinfl', pinfl);
+        formData.append('payment_date', paymentDate);
+        formData.append('amount', paymentAmount);
         formData.append('receipt', receiptFile);
 
         try {

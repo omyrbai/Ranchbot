@@ -172,7 +172,14 @@
     "discrepancy_report": "Discrepancy report",
     "discrepancy_report_desc": "Report incorrect payment information",
     "send_receipt": "Send receipt",
-    "send_receipt_desc": "Submit a payment receipt with your details"
+    "send_receipt_desc": "Submit a payment receipt with your details",
+    "Payment date": "Payment date",
+    "Payment amount": "Payment amount",
+    "Enter payment amount": "Enter payment amount",
+    "Please select the payment date.": "Please select the payment date.",
+    "Please enter a valid payment amount.": "Please enter a valid payment amount.",
+    "Please select a valid payment date.": "Please select a valid payment date.",
+    "Payment amount must be greater than zero.": "Payment amount must be greater than zero."
   },
   "kk": {
     "Student services": "Student xızmetleri",
@@ -347,7 +354,14 @@
     "discrepancy_report": "Parıqtı xabarlaw",
     "discrepancy_report_desc": "Naduris tólem maǵlıwmatı haqqında xabar beriń",
     "send_receipt": "Tólem kvitanciyasın jiberiw",
-    "send_receipt_desc": "Tólem kvitanciyasın maǵlıwmatlarıńız benen jiberiw"
+    "send_receipt_desc": "Tólem kvitanciyasın maǵlıwmatlarıńız benen jiberiw",
+    "Payment date": "Tólem sanası",
+    "Payment amount": "Tólem muǵdarı",
+    "Enter payment amount": "Tólem muǵdarın kiritiń",
+    "Please select the payment date.": "Tólem sanasın tańlań.",
+    "Please enter a valid payment amount.": "Tuwrı tólem muǵdarın kiritiń.",
+    "Please select a valid payment date.": "Tuwrı tólem sanasın tańlań.",
+    "Payment amount must be greater than zero.": "Tólem muǵdarı nolden joqarı bolıwı kerek."
   },
   "uz": {
     "Student services": "Talabalar xizmatlari",
@@ -522,6 +536,13 @@
     "discrepancy_report": "Nomuvofiqlik haqida xabar",
     "discrepancy_report_desc": "Noto‘g‘ri to‘lov ma’lumotlari haqida xabar bering",
     "send_receipt": "To‘lov kvitansiyasini yuborish",
-    "send_receipt_desc": "To‘lov kvitansiyasini ma’lumotlaringiz bilan yuboring"
+    "send_receipt_desc": "To‘lov kvitansiyasini ma’lumotlaringiz bilan yuboring",
+    "Payment date": "To‘lov sanasi",
+    "Payment amount": "To‘lov summasi",
+    "Enter payment amount": "To‘lov summasini kiriting",
+    "Please select the payment date.": "To‘lov sanasini tanlang.",
+    "Please enter a valid payment amount.": "To‘g‘ri to‘lov summasini kiriting.",
+    "Please select a valid payment date.": "To‘g‘ri to‘lov sanasini tanlang.",
+    "Payment amount must be greater than zero.": "To‘lov summasi noldan katta bo‘lishi kerak."
   }
 }

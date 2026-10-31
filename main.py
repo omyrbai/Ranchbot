@@ -9,6 +9,8 @@ import logging
 import os
 import re
 import time
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import parse_qsl
@@ -892,6 +894,8 @@ async def submit_contract_receipt(
     student_id: str = Form(...),
     full_name: str = Form(...),
     pinfl: str = Form(...),
+    payment_date: str = Form(...),
+    amount: str = Form(...),
     receipt: UploadFile = File(...),
     current_user: dict = Depends(require_registered_telegram_user),
 ):
@@ -920,6 +924,16 @@ async def submit_contract_receipt(
         raise HTTPException(status_code=400, detail="Full name must not exceed 150 characters.")
     if not re.fullmatch(r"\d{14}", pinfl):
         raise HTTPException(status_code=400, detail="PINFL must contain exactly 14 digits.")
+    try:
+        parsed_payment_date = date.fromisoformat(payment_date)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Please select a valid payment date.")
+    try:
+        payment_amount = Decimal(amount)
+    except (InvalidOperation, TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Please enter a valid payment amount.")
+    if not payment_amount.is_finite() or payment_amount <= 0:
+        raise HTTPException(status_code=400, detail="Payment amount must be greater than zero.")
     if not receipt.filename:
         raise HTTPException(status_code=400, detail="Please upload the payment receipt.")
 
@@ -948,6 +962,8 @@ async def submit_contract_receipt(
         f"👤 <b>Full Name:</b> {html.escape(full_name)}\n"
         f"🆔 <b>Student ID / ID number:</b> <code>{html.escape(student_id)}</code>\n"
         f"🪪 <b>PINFL:</b> <code>{html.escape(pinfl)}</code>\n"
+        f"📅 <b>Payment Date:</b> <code>{parsed_payment_date.isoformat()}</code>\n"
+        f"💰 <b>Payment Amount:</b> <code>{html.escape(format(payment_amount, 'f'))}</code>\n"
         f"📱 <b>Telegram Name:</b> {html.escape(telegram_name)}\n"
         f"📞 <b>Phone:</b> <code>{html.escape(str(current_phone))}</code>\n"
         f"💬 <b>Telegram ID:</b> <code>{html.escape(str(telegram_id))}</code>"
