@@ -837,14 +837,14 @@ async def submit_discrepancy_report(
     safe_details = html.escape(details)
 
     report_message = (
-        "🚨 <b>Discrepancy Report</b>\n\n"
+        "🚨 <b>Pariqti xabarlaw</b>\n\n"
         f"👤 <b>Arza beriwshi FIO:</b> {safe_name}\n"
-        f"📱 <b>Tg Akkaunt ati:</b> {safe_telegram_name}\n"
+        f"📱 <b>Tg akkaunt:</b> {safe_telegram_name}\n"
         f"🆔 <b>ID nomeri:</b> <code>{safe_student_id}</code>\n"
         f"🪪 <b>PINFL:</b> <code>{safe_pinfl}</code>\n"
-        f"📱 <b>Tg Phone:</b> <code>{safe_phone}</code>\n"
-        f"💬 <b>Telegram ID:</b> <code>{safe_telegram_id}</code>\n\n"
-        f"<b>Description:</b>\n{safe_details}"
+        f"📱 <b>Tg nomeri:</b> <code>{safe_phone}</code>\n"
+        f"💬 <b>Tg ID:</b> <code>{safe_telegram_id}</code>\n\n"
+        f"<b>Sipatlama:</b>\n{safe_details}"
     )
 
     # 7. Send the report and documents to the configured topic
