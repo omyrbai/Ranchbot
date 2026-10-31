@@ -164,7 +164,7 @@
     "Choose file": "Choose file",
     "No file chosen": "No file selected",
     "ID number": "ID number",
-    "Enter your student ID to search for the associated HEMIS login details.": "Enter your student ID to search for HEMIS login details.",
+    "hemis_login_description": "Enter your student ID to search for HEMIS login details.",
     "Find your student ID details": "Find your ID number details"
   },
   "kk": {
@@ -332,7 +332,7 @@
     "Choose file": "Fayldı tańlaw",
     "No file chosen": "Fayl tańlanbaǵan",
     "ID number": "ID nomeri",
-    "Enter your student ID to search for the associated HEMIS login details.": "HEMIS login maǵlıwmatların tabıw ushın ID nomerińizdi kiritiń.",
+    "hemis_login_description": "HEMIS login maǵlıwmatların tabıw ushın ID nomerińizdi kiritiń.",
     "Find your student ID details": "ID nomeri boyınsha maǵlıwmatlardı tabıw"
   },
   "uz": {
@@ -500,7 +500,7 @@
     "Choose file": "Faylni tanlash",
     "No file chosen": "Fayl tanlanmagan",
     "ID number": "ID raqami",
-    "Enter your student ID to search for the associated HEMIS login details.": "HEMIS login ma’lumotlarini topish uchun ID raqamingizni kiriting.",
+    "hemis_login_description": "HEMIS login ma’lumotlarini topish uchun ID raqamingizni kiriting.",
     "Find your student ID details": "ID raqami ma’lumotlarini topish"
   }
 }
