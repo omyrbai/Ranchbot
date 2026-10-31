@@ -955,15 +955,15 @@ async def submit_contract_receipt(
     ).strip() or "Not provided"
 
     receipt_message = (
-        "🧾 <b>Payment Receipt Submission</b>\n\n"
-        f"👤 <b>Full Name:</b> {html.escape(full_name)}\n"
-        f"🆔 <b>Student ID / ID number:</b> <code>{html.escape(student_id)}</code>\n"
+        "🧾 <b>Kvitanciya</b>\n\n"
+        f"👤 <b>FIO:</b> {html.escape(full_name)}\n"
+        f"🆔 <b>ID nomeri:</b> <code>{html.escape(student_id)}</code>\n"
         f"🪪 <b>PINFL:</b> <code>{html.escape(pinfl)}</code>\n"
-        f"📅 <b>Payment Date:</b> <code>{parsed_payment_date.isoformat()}</code>\n"
-        f"💰 <b>Payment Amount:</b> <code>{html.escape(format(payment_amount, ',.2f').replace(',', ' ').replace('.', ','))}</code>\n"
-        f"📱 <b>Telegram Name:</b> {html.escape(telegram_name)}\n"
-        f"📞 <b>Phone:</b> <code>{html.escape(str(current_phone))}</code>\n"
-        f"💬 <b>Telegram ID:</b> <code>{html.escape(str(telegram_id))}</code>"
+        f"📅 <b>Tólem sánesi:</b> <code>{parsed_payment_date.isoformat()}</code>\n"
+        f"💰 <b>Tólem muǵdarı:</b> <code>{html.escape(format(payment_amount, ',.2f').replace(',', ' ').replace('.', ','))}</code>\n"
+        f"📱 <b>Tg akkaunt ati:</b> {html.escape(telegram_name)}\n"
+        f"📞 <b>Nomeri:</b> <code>{html.escape(str(current_phone))}</code>\n"
+        f"💬 <b>Tg ID:</b> <code>{html.escape(str(telegram_id))}</code>"
     )
     send_options = {"chat_id": GROUP_TGID, "message_thread_id": DISCR_TOPIC_ID}
 
