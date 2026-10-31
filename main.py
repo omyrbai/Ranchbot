@@ -838,7 +838,7 @@ async def submit_discrepancy_report(
 
     report_message = (
         "🚨 <b>Pariqti xabarlaw</b>\n\n"
-        f"👤 <b>Arza beriwshi FIO:</b> {safe_name}\n"
+        f"👤 <b>Arza berdi:</b> {safe_name}\n"
         f"📱 <b>Tg akkaunt:</b> {safe_telegram_name}\n"
         f"🆔 <b>ID nomeri:</b> <code>{safe_student_id}</code>\n"
         f"🪪 <b>PINFL:</b> <code>{safe_pinfl}</code>\n"
