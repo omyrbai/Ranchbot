@@ -862,11 +862,15 @@
             }
 
             // Display success only after the backend confirms success
+            // Display the success message in the selected language
+            const lang = languageSelect.value;
+            const dictionary = translations[lang] || translations.en;
+
             successBox.textContent =
-                result.message || "Your phone-change request has been submitted successfully.";
+                dictionary.phone_change_success ||
+                translations.en.phone_change_success;
 
             successBox.style.display = "block";
-
             // Clear the form after successful submission
             form.reset();
 
