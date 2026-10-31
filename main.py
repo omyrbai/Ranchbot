@@ -785,15 +785,29 @@ async def submit_discrepancy_report(
     print(f"Is future: {parsed_payment_date > today}")
     # If payment was made on Saturday or Sunday, move the
     # effective receipt date forward to the following Monday.
+    # If payment was made on Saturday or Sunday, move the
+    # effective receipt date forward to the following Monday.
     receipt_date = parsed_payment_date
 
     while receipt_date.weekday() >= 5:
         receipt_date += timedelta(days=1)
 
-    if receipt_date > today:
+    # Count elapsed business days, excluding Saturdays and Sundays.
+    business_days_elapsed = 0
+    current_date = receipt_date
+
+    while current_date < today:
+        current_date += timedelta(days=1)
+
+        if current_date.weekday() < 5:
+            business_days_elapsed += 1
+
+    if business_days_elapsed < 4:
         raise HTTPException(
             status_code=400,
-            detail="Payment date cannot be in the future.",
+            detail=(
+                "Discrepancy reports can only be submitted at least 4 business days after the payment date."
+            ),
         )
 
     # Count elapsed business days, excluding Saturdays and Sundays.
