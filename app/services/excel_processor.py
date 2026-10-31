@@ -95,8 +95,6 @@ def parse_credentials(file_bytes: bytes) -> dict[str, dict[str, str]]:
             student_id = _student_id(record["Idnumber"], row_num)
             if student_id in result:
                 raise WorkbookValidationError(f"Row {row_num}: duplicate Idnumber {student_id}.")
-            if not record["Phone"]:
-                raise WorkbookValidationError(f"Row {row_num}: Phone (column E) is empty.")
 
             # Keep legacy keys so any existing callers do not fail.
             record["login"] = record["HemisID"]
