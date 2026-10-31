@@ -1042,9 +1042,9 @@ async def request_phone_change(
     # 6. Build the Telegram message
     message = (
         "<b>📱 Nomerin ózgertiw</b>\n\n"
-        f"📞 Arza beriwshi nomeri: <code>{safe_current_phone}</code>\n"
-        f"🆔 Telegram ID: <code>{safe_telegram_id}</code>\n"
-        f"👤 Tg akkaunt ati: {safe_telegram_name}\n"
+        f"📞 Arzashi nomeri: <code>{safe_current_phone}</code>\n"
+        f"🆔 Tg ID: <code>{safe_telegram_id}</code>\n"
+        f"👤 Akkaunt ati: {safe_telegram_name}\n"
         f"🪪 ID nomeri: <code>{safe_student_id}</code>\n\n"
         f"Arza beriwshi <code>{safe_student_id}</code> telefon nomerin "
         f"<code>{safe_new_phone}</code> nomerine ózgertiwge arza berdi."

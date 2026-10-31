@@ -644,10 +644,12 @@
                 );
             }
 
-            messageBox.textContent =
-                result.message ||
-                'Your discrepancy report was submitted successfully.';
+            const lang = document.getElementById('language-select').value;
+            const dictionary = translations[lang] || translations.en;
 
+            messageBox.textContent =
+                dictionary['Your discrepancy report was submitted successfully.'] ||
+                translations.en['Your discrepancy report was submitted successfully.'];
             form.reset();
 
             // Reset the displayed filenames
@@ -737,7 +739,12 @@
             if (!response.ok) {
                 throw new Error(`Request failed (${response.status}): ${result.detail || result.message || 'Unknown server error.'}`);
             }
-            messageBox.textContent = result.message || 'Your payment receipt was submitted successfully.';
+            const lang = document.getElementById('language-select').value;
+            const dictionary = translations[lang] || translations.en;
+
+            messageBox.textContent =
+                dictionary['Your payment receipt was submitted successfully.'] ||
+                translations.en['Your payment receipt was submitted successfully.'];.';
             form.reset();
             document.getElementById('receipt-file-name').textContent = 'Upload the payment receipt (photo/PDF).';
         } catch (error) {
