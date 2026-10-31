@@ -195,7 +195,7 @@ def mini_app_keyboard():
 
 async def send_registered_menu(message):
     await message.reply_text(
-        "✅ Siziń telefon nomer dizimnen ótkerilgen. Mini appqa ótip studentlerge kórsetiletuǵın xızmetler menen tanıssańız boladı:",
+        "✅ Siziń akkauntıńız tastıyıqlanǵan. Mini appqa ótip studentlerge kórsetiletuǵın xızmetler menen tanıssańız boladı:",
         reply_markup=ReplyKeyboardRemove(),
     )
     await message.reply_text("🚀 Tómendegi túymeni basıp Mini apptı ashıń:", reply_markup=mini_app_keyboard())
@@ -448,7 +448,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not registered_user or not registered_user.get("phone"):
         await message.reply_text(
-            "Dáslep ózińizdiń telefon nomerińizdi jiberiw arqalı dizimnen ótiń",
+            "Dáslep ózińizdiń telefon nomerińizdi jiberiw arqalı akkauntıńızdı tastıyıqlań",
             reply_markup=registration_keyboard(),
         )
         return
