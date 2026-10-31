@@ -165,7 +165,14 @@
     "No file chosen": "No file selected",
     "ID number": "ID number",
     "hemis_login_description": "Enter your student ID to search for HEMIS login details.",
-    "Find your student ID details": "Find your ID number details"
+    "Find your student ID details": "Find your ID number details",
+    "Enter your student ID to find the associated contract payment information.": "Enter your ID to find the associated contract payment information.",
+    "find_contract": "Find contract",
+    "find_contract_desc": "Enter your student ID to view payment status",
+    "discrepancy_report": "Discrepancy report",
+    "discrepancy_report_desc": "Report incorrect payment information",
+    "send_receipt": "Send receipt",
+    "send_receipt_desc": "Submit a payment receipt with your details"
   },
   "kk": {
     "Student services": "Student xızmetleri",
@@ -333,7 +340,14 @@
     "No file chosen": "Fayl tańlanbaǵan",
     "ID number": "ID nomeri",
     "hemis_login_description": "HEMIS login maǵlıwmatların tabıw ushın ID nomerińizdi kiritiń.",
-    "Find your student ID details": "ID nomeri boyınsha maǵlıwmatlardı tabıw"
+    "Find your student ID details": "ID nomeri boyınsha maǵlıwmatlardı tabıw",
+    "Enter your student ID to find the associated contract payment information.": "Kontrakt tólemi maǵlıwmatın tabıw ushın ID kiritiń.",
+    "find_contract": "Kontrakttı tabıw",
+    "find_contract_desc": "Tólem jaǵdayın kóriw ushın ID nomerińizdi kiritiń",
+    "discrepancy_report": "Parıqtı xabarlaw",
+    "discrepancy_report_desc": "Naduris tólem maǵlıwmatı haqqında xabar beriń",
+    "send_receipt": "Tólem kvitanciyasın jiberiw",
+    "send_receipt_desc": "Tólem kvitanciyasın maǵlıwmatlarıńız benen jiberiw"
   },
   "uz": {
     "Student services": "Talabalar xizmatlari",
@@ -501,6 +515,13 @@
     "No file chosen": "Fayl tanlanmagan",
     "ID number": "ID raqami",
     "hemis_login_description": "HEMIS login ma’lumotlarini topish uchun ID raqamingizni kiriting.",
-    "Find your student ID details": "ID raqami ma’lumotlarini topish"
+    "Find your student ID details": "ID raqami ma’lumotlarini topish",
+    "Enter your student ID to find the associated contract payment information.": "Kontrakt to‘lovi ma’lumotlarini topish uchun ID raqamingizni kiriting.",
+    "find_contract": "Shartnomani topish",
+    "find_contract_desc": "To‘lov holatini ko‘rish uchun ID raqamingizni kiriting",
+    "discrepancy_report": "Nomuvofiqlik haqida xabar",
+    "discrepancy_report_desc": "Noto‘g‘ri to‘lov ma’lumotlari haqida xabar bering",
+    "send_receipt": "To‘lov kvitansiyasini yuborish",
+    "send_receipt_desc": "To‘lov kvitansiyasini ma’lumotlaringiz bilan yuboring"
   }
 }
