@@ -611,7 +611,7 @@ try { savedLanguage = localStorage.getItem('ranchbot-language') || 'en'; } catch
 const initialLanguage = ['en', 'kk', 'uz'].includes(savedLanguage) ? savedLanguage : 'en';
 fetch('./translations.json')
   .then(response => { if (!response.ok) throw new Error('Could not load translations.json'); return response.json(); })
-  .then(data => { translations = { kk: data.kk || {}, uz: data.uz || {} }; applyLanguage(initialLanguage); })
+  .then(data => { translations = { en: data.en || {}, kk: data.kk || {}, uz: data.uz || {} }; applyLanguage(initialLanguage); })
   .catch(error => { console.error('Translation file could not be loaded:', error); applyLanguage(initialLanguage); });
 languageSelect.addEventListener('change', () => applyLanguage(languageSelect.value));
 // Translate text added later by form handlers (API responses, status and validation messages).

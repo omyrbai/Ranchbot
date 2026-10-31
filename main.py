@@ -614,6 +614,15 @@ async def homepage():
     return FileResponse(INDEX_FILE)
 
 
+@app.get("/translations.json", include_in_schema=False)
+async def translation_file():
+    """Serve the Mini App language dictionaries to the frontend."""
+    translations_file = FRONTEND_DIR / "translations.json"
+    if not translations_file.is_file():
+        raise HTTPException(status_code=500, detail="frontend/translations.json was not found.")
+    return FileResponse(translations_file, media_type="application/json; charset=utf-8")
+
+
 @app.get("/api/health")
 async def health_check():
     try:
