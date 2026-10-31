@@ -8,7 +8,7 @@
 <style>
 :root{--bg:#f4f6fa;--ink:#192235;--muted:#778196;--line:#e5e9f0;--blue:#2868d9;--blue-soft:#eaf1ff;--green:#168b63;--green-soft:#e7f7ef;--orange-soft:#fff1df;--purple-soft:#f0eaff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}button,input,textarea{font:inherit}button{cursor:pointer}.app{max-width:440px;min-height:100vh;margin:auto;padding:20px 17px 96px}
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:25px}.header-actions{display:flex;align-items:center;gap:9px}.language-select{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 7px;font-size:12px;font-weight:750;max-width:82px}.brand{display:flex;align-items:center;gap:11px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(140deg,#4d7cf5,#2454d8);color:white;display:grid;place-items:center;font-weight:800;font-size:21px}.brandname{font-size:18px;font-weight:800;letter-spacing:-.4px}.subtitle{font-size:12px;color:var(--muted);margin-top:3px}.avatar{width:39px;height:39px;border-radius:50%;background:#e8edfa;color:#3557a4;display:grid;place-items:center;font-weight:800}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:25px}.header-actions{display:flex;align-items:center;gap:9px}.language-select{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 7px;font-size:12px;font-weight:750;max-width:82px}.brand{display:flex;align-items:center;gap:11px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(140deg,#4d7cf5,#2454d8);color:white;display:grid;place-items:center;font-weight:800;font-size:21px}.brandname{font-size:18px;font-weight:800;letter-spacing:-.4px}.subtitle{font-size:12px;color:var(--muted);margin-top:3px}.avatar{width:39px;height:39px;border:0;border-radius:50%;background:#e8edfa;color:#3557a4;display:grid;place-items:center;padding:0;overflow:hidden}.avatar svg{width:25px;height:25px;display:block}.avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--blue);font-weight:800;margin-bottom:8px}h1{font-size:27px;letter-spacing:-.9px;line-height:1.18;margin:0}h2{font-size:17px;letter-spacing:-.3px;margin:0}p{font-size:14px;line-height:1.5;color:var(--muted)}
 .hero{margin:20px 0 25px;padding:21px;border-radius:23px;background:linear-gradient(120deg,#285be0,#477bf4);color:white;box-shadow:0 12px 25px #3267e927}.hero small{font-size:11px;letter-spacing:.8px;color:#dce6ff;font-weight:700}.hero h2{font-size:21px;margin:15px 0 7px}.hero p{color:#e0e8ff;font-size:13px;margin:0 0 18px}.lightbtn{background:#fff;color:#285be0;border:0;border-radius:12px;padding:12px 15px;font-weight:750}
 .sectionhead{display:flex;align-items:center;justify-content:space-between;margin:0 2px 13px}.sectionhead span{font-size:12px;color:var(--muted)}
@@ -21,7 +21,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 </style>
 </head>
 <body><section id="auth-gate" role="status" aria-live="polite"><div style="font-size:38px;margin-bottom:12px">🔐</div><h1>Checking access…</h1><p>Please wait while the bot verifies your Telegram registration.</p></section><main class="app">
-<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Regofisbot</div><div class="subtitle">Student services</div></div></div><div class="header-actions"><select id="language-select" class="language-select" aria-label="Select language"><option value="en">EN</option><option value="kk">KK</option><option value="uz">UZ</option></select><button class="avatar" id="profile-open" type="button" aria-label="My profile" title="My profile">S</button></div></header>
+<header><div class="brand"><div class="logo">R</div><div><div class="brandname">Regofisbot</div><div class="subtitle">Student services</div></div></div><div class="header-actions"><select id="language-select" class="language-select" aria-label="Select language"><option value="en">EN</option><option value="kk">KK</option><option value="uz">UZ</option></select><button class="avatar" id="profile-open" type="button" aria-label="My profile" title="My profile"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="7.5" r="4.2" fill="currentColor"/><path d="M3.5 21c.5-5 3.6-7.6 8.5-7.6s8 2.6 8.5 7.6" fill="currentColor"/></svg></button></div></header>
 <section class="screen active" id="home">
 <div class="eyebrow">Student self-service</div><h1 id="home-greeting">Hello there 👋</h1><p class="intro">Choose what you need help with today.</p>
 <div class="hero"><small>Urganch RANCH University of Technology  · Nukus Campus
@@ -84,6 +84,31 @@ function showAuthGate(title, message) {
   authGate.querySelector('h1').textContent = title;
   authGate.querySelector('p').textContent = message;
 }
+function setProfilePicture(student) {
+  const button = document.getElementById('profile-open');
+  const photoUrl = student && (student.photo_url || student.photoUrl);
+  if (photoUrl) {
+    const img = document.createElement('img');
+    img.src = photoUrl;
+    img.alt = '';
+    img.onerror = () => { button.innerHTML = profileIconSvg(); };
+    button.replaceChildren(img);
+  } else {
+    // Telegram Mini Apps may expose a photo URL in initDataUnsafe.user.photo_url.
+    const telegramPhoto = telegram && telegram.initDataUnsafe && telegram.initDataUnsafe.user && telegram.initDataUnsafe.user.photo_url;
+    if (telegramPhoto) {
+      const img = document.createElement('img'); img.src = telegramPhoto; img.alt = '';
+      img.onerror = () => { button.innerHTML = profileIconSvg(); };
+      button.replaceChildren(img);
+    } else {
+      button.innerHTML = profileIconSvg();
+    }
+  }
+}
+function profileIconSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="7.5" r="4.2" fill="currentColor"/><path d="M3.5 21c.5-5 3.6-7.6 8.5-7.6s8 2.6 8.5 7.6" fill="currentColor"/></svg>';
+}
+
 async function verifyAccess() {
   if (!telegram || !telegramInitData) {
     showAuthGate('Open the bot in Telegram', 'To protect student information, this Mini App can only be opened from the bot after you share your own phone number.');
@@ -103,7 +128,7 @@ async function verifyAccess() {
     try {
       const student = await apiGet('/api/student/me');
       document.getElementById('home-greeting').textContent = `Hello, ${student.fullname} 👋`;
-      document.getElementById('profile-open').textContent = (student.fullname || 'S').trim().charAt(0).toUpperCase() || 'S';
+      setProfilePicture(student);
     } catch (profileError) {
       // Keep the Mini App usable if no unique HEMIS profile is matched yet.
       console.info('HEMIS profile not available:', profileError.message);
@@ -132,7 +157,7 @@ profileOpenButton.addEventListener('click', async () => {
   try {
     const student = await apiGet('/api/student/me');
     document.getElementById('home-greeting').textContent = `Hello, ${student.fullname} 👋`;
-    profileOpenButton.textContent = (student.fullname || 'S').trim().charAt(0).toUpperCase() || 'S';
+    setProfilePicture(student);
     const fields = [
       ['Full name', student.fullname],
       ['HEMIS ID', student.hemis_id],
