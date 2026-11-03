@@ -1322,7 +1322,7 @@ async def handle_phone_change_callback(
         status = "📌 <b>Status:</b> ✅ Ózgertildi"
 
         student_message = (
-            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız orınlandı."
+            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız <b>orınlandı</b>."
         )
 
     elif action == "cancel":
@@ -1376,6 +1376,7 @@ async def handle_phone_change_callback(
         await context.bot.send_message(
             chat_id=student_telegram_id,
             text=student_message,
+            parse_mode="HTML",
         )
 
     except Exception:
