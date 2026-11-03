@@ -734,6 +734,60 @@ def get_my_student_profile(
         "tutor": student.get("Tutor", ""),
     }
 
+
+@app.get("/api/address/me")
+def get_my_addresses(
+    current_user: dict = Depends(require_registered_telegram_user)
+):
+    # Reuse the existing authenticated student lookup.
+    student = get_my_student_profile(current_user)
+    hemis_id = student.get("hemis_id")
+
+    if not hemis_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Your HEMIS ID could not be identified."
+        )
+
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    address_id,
+                    latitude,
+                    longitude,
+                    full_address,
+                    flat_number,
+                    address_type,
+                    is_current,
+                    created_at,
+                    updated_at
+                FROM addresses
+                WHERE hemis_id = %s
+                ORDER BY is_current DESC, created_at DESC
+                """,
+                (hemis_id,)
+            )
+
+            addresses = cursor.fetchall()
+
+        return {
+            "addresses": addresses
+        }
+
+    except Exception:
+        logger.exception("Could not retrieve student addresses")
+        raise HTTPException(
+            status_code=503,
+            detail="Address service is temporarily unavailable."
+        )
+
+    finally:
+        connection.close()
+
 def require_admin(x_admin_token: str | None) -> None:
     configured = settings.admin_upload_token
     if not configured or configured == "CHANGE_ME_BEFORE_RUNNING":
