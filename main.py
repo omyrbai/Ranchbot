@@ -1201,11 +1201,11 @@ async def request_phone_change(
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
-                "✅ Changed",
+                "✅ Ózgertiw",
                 callback_data="phone_change:changed"
             ),
             InlineKeyboardButton(
-                "❌ Cancel",
+                "❌ Biykarlaw",
                 callback_data="phone_change:cancel"
             ),
         ]
@@ -1319,21 +1319,17 @@ async def handle_phone_change_callback(
         return
 
     if action == "changed":
-        status = "📌 <b>Status:</b> ✅ Changed"
+        status = "📌 <b>Status:</b> ✅ Ózgertildi"
 
         student_message = (
-            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız qabıllandı.\n\n"
-            "Telefon nomerińizdi ózgertiw boyınsha sorawıńız orınlandı.\n\n"
-            "Raxmet!"
+            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız orınlandı."
         )
 
     elif action == "cancel":
-        status = "📌 <b>Status:</b> ❌ Cancelled"
+        status = "📌 <b>Status:</b> ❌ Biykarlandı"
 
         student_message = (
-            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız biykarlandı.\n\n"
-            "Qosımsha maǵlıwmat ushın universitettiń tiyisli bólimine múrájat etiń.\n\n"
-            "Raxmet!"
+            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız <b>biykarlandı</b>."
         )
 
     else:
