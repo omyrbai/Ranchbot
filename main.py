@@ -1153,6 +1153,12 @@ async def request_phone_change(
             detail="Invalid identification number format.",
         )
 
+    # Get tutor information from HEMIS dataset
+    dataset = load_json(GENERATED_DIR / "login.json")
+    student_record = dataset.get(student_id, {}) if dataset else {}
+
+    tutor_name = student_record.get("Tutor", "Not available") or "Not available"
+
     # 3. Normalize and validate the new phone number
     phone_digits = re.sub(r"\D", "", request.new_phone)
 
@@ -1183,16 +1189,17 @@ async def request_phone_change(
     safe_telegram_id = html.escape(str(telegram_id))
     safe_student_id = html.escape(student_id)
     safe_new_phone = html.escape(new_phone)
-
+    safe_tutor_name = html.escape(str(tutor_name))
     # 6. Build the Telegram message
     message = (
         "<b>📱 Nomerin ózgertiw</b>\n\n"
-        f"📞 Arzashi nomeri: <code>{safe_current_phone}</code>\n"
+        f"📞 Arzashı nomeri: <code>{safe_current_phone}</code>\n"
         f"🆔 Tg ID: <code>{safe_telegram_id}</code>\n"
-        f"👤 Akkaunt ati: {safe_telegram_name}\n"
+        f"👤 Akkaunt atı: {safe_telegram_name}\n"
         f"🪪 ID nomeri: <code>{safe_student_id}</code>\n\n"
         f"Arza beriwshi <code>{safe_student_id}</code> telefon nomerin "
         f"<code>{safe_new_phone}</code> nomerine ózgertiwge arza berdi."
+        f"<b>Juwapker: {safe_tutor_name}"
     )
 
     # 7. Send the request to the Telegram group and topic
@@ -1244,6 +1251,7 @@ def get_contract(
             status_code=422,
             detail="Student ID must contain two English letters followed by seven digits.",
         )
+
 
     dataset = load_json(GENERATED_DIR / "contract.json")
 
