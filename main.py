@@ -45,6 +45,7 @@ from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
+    CallbackQueryHandler,
     MessageHandler,
     filters,
 )
@@ -582,7 +583,12 @@ async def lifespan(app: FastAPI):
     # User registration
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(MessageHandler(filters.CONTACT, receive_contact))
-
+    telegram_app.add_handler(
+        CallbackQueryHandler(
+            handle_phone_change_callback,
+            pattern=r"^phone_change:(changed|cancel)$",
+        )
+    )
     # Admin Excel uploads
     telegram_app.add_handler(
         CommandHandler("upload_hemis", upload_hemis_command)
@@ -1190,6 +1196,21 @@ async def request_phone_change(
     safe_student_id = html.escape(student_id)
     safe_new_phone = html.escape(new_phone)
     safe_tutor_name = html.escape(str(tutor_name))
+
+    #inline buttons
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "✅ Changed",
+                callback_data="phone_change:changed"
+            ),
+            InlineKeyboardButton(
+                "❌ Cancel",
+                callback_data="phone_change:cancel"
+            ),
+        ]
+    ])
+
     # 6. Build the Telegram message
     message = (
         "<b>📱 Nomerin ózgertiw</b>\n\n"
@@ -1214,6 +1235,7 @@ async def request_phone_change(
             "chat_id": GROUP_TGID,
             "text": message,
             "parse_mode": "HTML",
+            "reply_markup": keyboard,
         }
 
         if PHONE_CHANGE_TOPIC_ID > 0:
@@ -1237,6 +1259,134 @@ async def request_phone_change(
         "message": "Phone-change request sent successfully.",
     }
 
+
+async def handle_phone_change_callback(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    query = update.callback_query
+    message = query.message
+
+    # 1. Verify the original group
+    if not message or message.chat.id != GROUP_TGID:
+        await query.answer(
+            "This action is only available in the original request group.",
+            show_alert=True,
+        )
+        return
+
+    # 2. Verify that the clicking user is a group member
+    try:
+        member = await context.bot.get_chat_member(
+            chat_id=GROUP_TGID,
+            user_id=query.from_user.id,
+        )
+
+        if member.status not in ("creator", "administrator", "member"):
+            await query.answer(
+                "Only group members can process this request.",
+                show_alert=True,
+            )
+            return
+
+    except Exception:
+        logger.exception(
+            "Could not verify group membership for user %s",
+            query.from_user.id,
+        )
+        await query.answer(
+            "Could not verify your group membership.",
+            show_alert=True,
+        )
+        return
+
+    # 3. Get the original message
+    original_text = message.text_html or ""
+
+    # Prevent processing an already completed request
+    if "📌 <b>Status:</b>" in original_text:
+        await query.answer(
+            "This request has already been processed.",
+            show_alert=True,
+        )
+        return
+
+    # 4. Determine the selected action
+    try:
+        action = query.data.split(":")[1]
+    except (IndexError, AttributeError):
+        await query.answer("Invalid action.", show_alert=True)
+        return
+
+    if action == "changed":
+        status = "📌 <b>Status:</b> ✅ Changed"
+
+        student_message = (
+            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız qabıllandı.\n\n"
+            "Telefon nomerińizdi ózgertiw boyınsha sorawıńız orınlandı.\n\n"
+            "Raxmet!"
+        )
+
+    elif action == "cancel":
+        status = "📌 <b>Status:</b> ❌ Cancelled"
+
+        student_message = (
+            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız biykarlandı.\n\n"
+            "Qosımsha maǵlıwmat ushın universitettiń tiyisli bólimine múrájat etiń.\n\n"
+            "Raxmet!"
+        )
+
+    else:
+        await query.answer("Unknown action.", show_alert=True)
+        return
+
+    # 5. Extract student's Telegram ID
+    match = re.search(
+        r"Tg ID:\s*<code>(\d+)</code>",
+        original_text,
+    )
+
+    if not match:
+        logger.error("Could not find student Telegram ID in request.")
+        await query.answer(
+            "Student Telegram ID was not found.",
+            show_alert=True,
+        )
+        return
+
+    student_telegram_id = int(match.group(1))
+
+    # 6. Update original group message and remove buttons
+    try:
+        await query.edit_message_text(
+            text=f"{original_text}\n\n{status}",
+            parse_mode="HTML",
+            reply_markup=None,
+        )
+
+    except Exception:
+        logger.exception("Could not update phone-change request message.")
+        await query.answer(
+            "Could not update the request message.",
+            show_alert=True,
+        )
+        return
+
+    # 7. Answer callback
+    await query.answer("Request processed successfully.")
+
+    # 8. Send private notification to student
+    try:
+        await context.bot.send_message(
+            chat_id=student_telegram_id,
+            text=student_message,
+        )
+
+    except Exception:
+        logger.exception(
+            "Could not send phone-change notification to student %s",
+            student_telegram_id,
+        )
 
 
 @app.get("/api/contracts/{student_id}")
