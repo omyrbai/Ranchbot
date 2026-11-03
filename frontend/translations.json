@@ -185,7 +185,9 @@
     "phone_change_invalid_id": "Invalid identification number format.",
     "phone_change_invalid_phone": "Invalid phone number. Enter 9 digits.",
     "phone_change_group_not_configured": "Phone-change group is not configured.",
-    "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "Discrepancy reports can only be submitted at least 4 business days after the payment date."
+    "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "Discrepancy reports can only be submitted at least 4 business days after the payment date.",
+    "Address": "Address",
+    "3 services available": "3 services available"
   },
   "kk": {
     "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "Tólem sánesinen keyin keminde 4 jumıs kúni ótkennen soń sáykesizlik haqqında arza jiberiwge boladı.",
@@ -373,7 +375,9 @@
     "phone_change_failed": "Arzanı jiberiw múmkin bolmadı. Qaytadan urınıp kóriń.",
     "phone_change_invalid_id": "ID nomeriniń formatı nadurıs.",
     "phone_change_invalid_phone": "Telefon nomeri nadurıs. 9 san kiritiń.",
-    "phone_change_group_not_configured": "Telefon nomerin ózgertiw toparı sazlanbaǵan."
+    "phone_change_group_not_configured": "Telefon nomerin ózgertiw toparı sazlanbaǵan.",
+    "Address": "Manzili",
+    "3 services available": "3 xızmet bar"
   },
   "uz": {
     "Student services": "Talabalar xizmatlari",
@@ -561,6 +565,8 @@
     "phone_change_invalid_id": "ID raqami formati noto‘g‘ri.",
     "phone_change_invalid_phone": "Telefon raqami noto‘g‘ri. 9 ta raqam kiriting.",
     "phone_change_group_not_configured": "Telefon raqamini o‘zgartirish guruhi sozlanmagan.",
-    "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "To‘lov sanasidan keyin kamida 4 ish kuni o‘tgach nomuvofiqlik haqida ariza yuborish mumkin."
+    "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "To‘lov sanasidan keyin kamida 4 ish kuni o‘tgach nomuvofiqlik haqida ariza yuborish mumkin.",
+    "Address": "Manzili",
+    "3 services available": "3 ta xizmat mavjud"
   }
 }
