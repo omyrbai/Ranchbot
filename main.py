@@ -1218,7 +1218,7 @@ async def request_phone_change(
         f"🆔 Tg ID: <code>{safe_telegram_id}</code>\n"
         f"🎫 Akkaunt atı: {safe_telegram_name}\n"
         f"🪪 ID nomeri: <code>{safe_student_id}</code>\n"
-        f"👤<b>Juwapker: {safe_tutor_name}</b>\n\n"
+        f"👤 <b>Juwapker: {safe_tutor_name}</b>\n\n"
         f"Arza beriwshi <code>{safe_student_id}</code> telefon nomerin "
         f"<code>{safe_new_phone}</code> nomerine ózgertiwge arza berdi."
     )
