@@ -1320,18 +1320,8 @@ async def handle_phone_change_callback(
 
     if action == "changed":
         status = "📌 <b>Status:</b> ✅ Ózgertildi"
-
-        student_message = (
-            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız <b>orınlandı</b>."
-        )
-
     elif action == "cancel":
         status = "📌 <b>Status:</b> ❌ Biykarlandı"
-
-        student_message = (
-            "📱 Telefon nomerińizdi ózgertiw boyınsha arzańız <b>biykarlandı</b>."
-        )
-
     else:
         await query.answer("Unknown action.", show_alert=True)
         return
@@ -1351,6 +1341,30 @@ async def handle_phone_change_callback(
         return
 
     student_telegram_id = int(match.group(1))
+    # Extract requested new phone number
+    phone_match = re.search(
+        r"nomerin\s*<code>(.*?)</code>",
+        original_text,
+        re.IGNORECASE,
+    )
+
+    if not phone_match:
+        logger.error("Could not find requested phone number in request.")
+        await query.answer(
+            "Requested phone number was not found.",
+            show_alert=True,
+        )
+        return
+
+    requested_phone = phone_match.group(1)
+    if action == "changed":
+        student_message = (
+            f"📱 Telefon nomerińizdi <code>{requested_phone}</code> nomerine ózgertiw boyınsha arzańız <b>orınlandı</b>."
+        )
+    elif action == "cancel":
+        student_message = (
+            f"📱 Telefon nomerińizdi <code>{requested_phone}</code> nomerine ózgertiw boyınsha arzańız <b>biykarlandı</b>."
+        )
 
     # 6. Update original group message and remove buttons
     try:
