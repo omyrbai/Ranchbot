@@ -1199,7 +1199,7 @@ async def request_phone_change(
         f"🪪 ID nomeri: <code>{safe_student_id}</code>\n\n"
         f"Arza beriwshi <code>{safe_student_id}</code> telefon nomerin "
         f"<code>{safe_new_phone}</code> nomerine ózgertiwge arza berdi."
-        f"<b>Juwapker: {safe_tutor_name}"
+        f"<b>Juwapker: {safe_tutor_name}</b>"
     )
 
     # 7. Send the request to the Telegram group and topic
