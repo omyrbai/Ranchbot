@@ -629,6 +629,14 @@
             permanentMap.invalidateSize();
         }, 200);
 
+    }
+
+    function selectAddressLocation(type, lat, lng) {
+        const isCurrent = type === 'current';
+
+        const map = isCurrent ? currentMap : permanentMap;
+        const marker = isCurrent ? currentMarker : permanentMarker;
+
         if (marker) {
             map.removeLayer(marker);
         }
