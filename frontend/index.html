@@ -657,6 +657,42 @@
 
         map.setView([lat, lng], 16);
     }
+    function getCurrentLocation(type) {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser.');
+            return;
+        }
+
+        const button = document.getElementById(`${type}-location-button`);
+
+        button.disabled = true;
+        button.textContent = 'Getting location...';
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                selectAddressLocation(type, lat, lng);
+
+                button.disabled = false;
+                button.textContent = '📍 Get my current location';
+            },
+            function(error) {
+                button.disabled = false;
+                button.textContent = '📍 Get my current location';
+
+                alert('Unable to get your location. Please allow location access and try again.');
+                console.error(error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            }
+        );
+    }
+
     const screens=[...document.querySelectorAll('.screen')],nav=[...document.querySelectorAll('.nav')];
     function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')||(id==='profile'&&n.dataset.go==='home')));window.scrollTo({top:0,behavior:'smooth'})
         if (id === 'address') {
