@@ -1283,7 +1283,11 @@
       });
     });
     languageObserver.observe(document.body, {childList:true, subtree:true});
+    document.getElementById('current-location-button')
+    .addEventListener('click', () => getCurrentLocation('current'));
 
+    document.getElementById('permanent-location-button')
+    .addEventListener('click', () => getCurrentLocation('permanent'));
 </script>
 </body>
 </html>
