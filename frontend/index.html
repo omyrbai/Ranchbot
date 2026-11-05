@@ -82,11 +82,112 @@
                 <p>Open HEMIS for account guidance or Contract to check your payment information.</p></div>
         </div>
     </section>
+
     <section class="screen" id="address">
         <button class="back" data-go="home">← Home</button>
-        <div class="eyebrow">Address</div>
+
+        <div class="eyebrow">Student information</div>
         <h1 data-i18n="Address">Address</h1>
+        <p class="intro">
+            Provide your current and permanent residential addresses.
+        </p>
+
+        <form id="address-form">
+
+            <!-- Address type -->
+            <div class="panel">
+                <h2>Residential status</h2>
+
+                <label class="fieldlabel" for="address-type">
+                    What is your current living arrangement?
+                </label>
+
+                <select id="address-type" required>
+                    <option value="OWN">Own / Family house</option>
+                    <option value="RENT">Renting a property</option>
+                    <option value="NOT_RENT">Living with relatives or friends without paying rent</option>
+                </select>
+            </div>
+
+            <!-- Current address -->
+            <div class="panel">
+                <h2>Current address</h2>
+                <p class="note">
+                    Select the location where you currently live.
+                </p>
+
+                <div id="current-address-map"
+                     class="address-map">
+                    Map will appear here.
+                </div>
+
+                <button type="button"
+                        class="secondary"
+                        id="current-location-button">
+                    📍 Get my current location
+                </button>
+
+                <div class="statusbox" id="current-address-result">
+                    No location selected.
+                </div>
+
+                <label class="fieldlabel" for="current-flat">
+                    Apartment / Flat number
+                </label>
+                <input type="text"
+                       id="current-flat"
+                       maxlength="30"
+                       placeholder="Enter apartment or flat number">
+
+                <input type="hidden" id="current-latitude">
+                <input type="hidden" id="current-longitude">
+            </div>
+
+            <!-- Permanent address -->
+            <div class="panel">
+                <h2>Permanent address</h2>
+                <p class="note">
+                    Select your permanent home address.
+                </p>
+
+                <div id="permanent-address-map"
+                     class="address-map">
+                    Map will appear here.
+                </div>
+
+                <button type="button"
+                        class="secondary"
+                        id="permanent-location-button">
+                    📍 Get my current location
+                </button>
+
+                <div class="statusbox" id="permanent-address-result">
+                    No location selected.
+                </div>
+
+                <label class="fieldlabel" for="permanent-flat">
+                    Apartment / Flat number
+                </label>
+                <input type="text"
+                       id="permanent-flat"
+                       maxlength="30"
+                       placeholder="Enter apartment or flat number">
+
+                <input type="hidden" id="permanent-latitude">
+                <input type="hidden" id="permanent-longitude">
+            </div>
+
+            <button type="submit" class="primary" id="address-save">
+                Save addresses
+            </button>
+
+            <div class="statusbox" id="address-message" role="status">
+                Please select both locations before saving.
+            </div>
+
+        </form>
     </section>
+
     <section class="screen" id="profile">
         <button class="back" data-go="home">← Home</button>
         <div class="eyebrow">Student account</div>

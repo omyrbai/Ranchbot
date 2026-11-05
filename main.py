@@ -14,9 +14,15 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from typing import Literal
 from urllib.parse import parse_qsl
 import html
 import re
+
+import urllib.parse
+import urllib.request
+import urllib.error
+from threading import Lock
 
 from pydantic import BaseModel, Field
 import pymysql
@@ -67,6 +73,7 @@ INDEX_FILE = FRONTEND_DIR / "index.html"
 load_dotenv(BASE_DIR / ".env")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+
 ADMIN_TG_ID = int(os.getenv("ADMIN_TG_ID", "0"))
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", "3306"))
@@ -89,7 +96,58 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ranchbot")
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
+NOMINATIM_USER_AGENT = "Ranchbot/1.0 (contact: YOUR_EMAIL)"
 
+_nominatim_lock = Lock()
+_last_nominatim_request = 0.0
+
+
+def get_full_address(latitude: float, longitude: float) -> str:
+    global _last_nominatim_request
+
+    params = urllib.parse.urlencode({
+        "lat": latitude,
+        "lon": longitude,
+        "format": "jsonv2",
+        "addressdetails": 1,
+    })
+
+    request = urllib.request.Request(
+        f"{NOMINATIM_URL}?{params}",
+        headers={
+            "User-Agent": NOMINATIM_USER_AGENT,
+            "Accept-Language": "ru",
+        },
+    )
+
+    with _nominatim_lock:
+        elapsed = time.monotonic() - _last_nominatim_request
+
+        if elapsed < 1.1:
+            time.sleep(1.1 - elapsed)
+
+        try:
+            with urllib.request.urlopen(request, timeout=10) as response:
+                data = json.loads(response.read().decode("utf-8"))
+        except urllib.error.URLError:
+            logger.exception("Nominatim request failed")
+            raise HTTPException(
+                status_code=503,
+                detail="Address lookup is temporarily unavailable."
+            )
+        finally:
+            _last_nominatim_request = time.monotonic()
+
+    address = data.get("display_name")
+
+    if not address:
+        raise HTTPException(
+            status_code=422,
+            detail="No readable address found for this location."
+        )
+
+    return address
 # ---------------------------------------------------------------------------
 # Database: reuse ranchbot_db.users; do not create a second users table.
 # ---------------------------------------------------------------------------
@@ -97,6 +155,19 @@ GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 class PhoneChangeRequest(BaseModel):
     id_number: str = Field(min_length=9, max_length=9)
     new_phone: str = Field(min_length=12, max_length=13)
+
+
+class AddressLocationRequest(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    flat_number: str | None = Field(default=None, max_length=30)
+
+
+class SaveAddressRequest(BaseModel):
+    address_type: Literal["OWN", "RENT", "NOT_RENT"]
+    current_address: AddressLocationRequest
+    permanent_address: AddressLocationRequest | None = None
+
 
 def get_db_connection():
     if not DB_PASSWORD:
@@ -762,6 +833,7 @@ def get_my_addresses(
                     full_address,
                     flat_number,
                     address_type,
+                    address_role,
                     is_current,
                     created_at,
                     updated_at
@@ -787,6 +859,146 @@ def get_my_addresses(
 
     finally:
         connection.close()
+
+
+@app.post("/api/address/me")
+def save_my_addresses(
+    request: SaveAddressRequest,
+    current_user: dict = Depends(require_registered_telegram_user)
+):
+    student = get_my_student_profile(current_user)
+    hemis_id = student.get("hemis_id")
+
+    if not hemis_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Your HEMIS ID could not be identified."
+        )
+
+    if request.address_type == "OWN" and request.permanent_address is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="A permanent address is not required for OWN."
+        )
+
+    if request.address_type in ("RENT", "NOT_RENT") and request.permanent_address is None:
+        raise HTTPException(
+            status_code=422,
+            detail="A permanent address is required."
+        )
+
+    current_full_address = get_full_address(
+        request.current_address.latitude,
+        request.current_address.longitude
+    )
+
+    permanent_full_address = None
+
+    if request.permanent_address:
+        permanent_full_address = get_full_address(
+            request.permanent_address.latitude,
+            request.permanent_address.longitude
+        )
+
+    connection = get_db_connection()
+
+    try:
+        connection.begin()
+
+        with connection.cursor() as cursor:
+            # Retire previous active CURRENT address.
+            cursor.execute(
+                """
+                UPDATE addresses
+                SET is_current = 0
+                WHERE hemis_id = %s
+                  AND address_role = 'CURRENT'
+                  AND is_current = 1
+                """,
+                (hemis_id,)
+            )
+
+            # Insert new CURRENT address.
+            cursor.execute(
+                """
+                INSERT INTO addresses (
+                    hemis_id, latitude, longitude, full_address,
+                    flat_number, address_type, address_role, is_current
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, 'CURRENT', 1)
+                """,
+                (
+                    hemis_id,
+                    request.current_address.latitude,
+                    request.current_address.longitude,
+                    current_full_address,
+                    request.current_address.flat_number,
+                    request.address_type
+                )
+            )
+
+            # Retire previous active PERMANENT address.
+            cursor.execute(
+                """
+                UPDATE addresses
+                SET is_current = 0
+                WHERE hemis_id = %s
+                  AND address_role = 'PERMANENT'
+                  AND is_current = 1
+                """,
+                (hemis_id,)
+            )
+
+            if request.address_type == "OWN":
+                permanent_latitude = request.current_address.latitude
+                permanent_longitude = request.current_address.longitude
+                permanent_flat_number = request.current_address.flat_number
+                permanent_address_text = current_full_address
+            else:
+                permanent_latitude = request.permanent_address.latitude
+                permanent_longitude = request.permanent_address.longitude
+                permanent_flat_number = request.permanent_address.flat_number
+                permanent_address_text = permanent_full_address
+
+            # Insert new PERMANENT address.
+            cursor.execute(
+                """
+                INSERT INTO addresses (
+                    hemis_id, latitude, longitude, full_address,
+                    flat_number, address_type, address_role, is_current
+                )
+                VALUES (%s, %s, %s, %s, %s, 'OWN', 'PERMANENT', 1)
+                """,
+                (
+                    hemis_id,
+                    permanent_latitude,
+                    permanent_longitude,
+                    permanent_address_text,
+                    permanent_flat_number
+                )
+            )
+
+        connection.commit()
+
+        return {
+            "message": "Addresses saved successfully."
+        }
+
+    except HTTPException:
+        connection.rollback()
+        raise
+
+    except Exception:
+        connection.rollback()
+        logger.exception("Could not save student addresses")
+        raise HTTPException(
+            status_code=503,
+            detail="Could not save addresses. Please try again."
+        )
+
+    finally:
+        connection.close()
+
 
 def require_admin(x_admin_token: str | None) -> None:
     configured = settings.admin_upload_token
