@@ -36,6 +36,24 @@
             width: 100%;
             height: 100%;
         }
+        #current-full-address,
+        #permanent-full-address {
+            color: CanvasText;
+            caret-color: auto;
+            background-color: Field;
+            text-align: left;
+            direction: ltr;
+            overflow-x: auto;
+            white-space: nowrap;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        #current-full-address::selection,
+        #permanent-full-address::selection {
+            background-color: Highlight;
+            color: HighlightText;
+        }
     </style>
     <link
     rel="stylesheet"
@@ -124,8 +142,8 @@
 
             <p class="note">
                 Your selected coordinates and address details will be sent
-                to Regofisbot and stored in the university database for
-                student address registration purposes.
+                to Regofisbot and stored in the database for processing by
+                university side and for address registration purposes.
             </p>
 
             <p class="note">
