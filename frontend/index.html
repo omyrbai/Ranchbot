@@ -103,7 +103,60 @@
                 <p>Open HEMIS for account guidance or Contract to check your payment information.</p></div>
         </div>
     </section>
+    <section class="screen" id="address-consent">
+        <button class="back" data-go="home">← Home</button>
 
+        <div class="eyebrow">Privacy and permissions</div>
+        <h1>Location consent</h1>
+
+        <p class="intro">
+            Before providing your residential address, please read and accept
+            the following information.
+        </p>
+
+        <div class="panel">
+            <h2>How we use your location</h2>
+
+            <p class="note">
+                Your location coordinates will be used to identify your
+                residential address through OpenStreetMap (Nominatim).
+            </p>
+
+            <p class="note">
+                Your selected coordinates and address details will be sent
+                to Ranchbot and stored in the university database for
+                student address registration purposes.
+            </p>
+
+            <p class="note">
+                Your location is personal information. Please provide it
+                only if you agree to this processing.
+            </p>
+
+            <label class="fieldlabel">
+                <input type="checkbox" id="address-consent-checkbox">
+                I have read and agree to the collection, processing and
+                storage of my location and address information.
+            </label>
+
+            <button
+                type="button"
+                class="primary"
+                id="address-consent-accept"
+                disabled
+            >
+                Agree and continue
+            </button>
+
+            <button
+                type="button"
+                class="secondary"
+                id="address-consent-decline"
+            >
+                Decline and return home
+            </button>
+        </div>
+    </section>
     <section class="screen" id="address">
         <button class="back" data-go="home">← Home</button>
 
@@ -151,7 +204,15 @@
                 <div class="statusbox" id="current-address-result">
                     No location selected.
                 </div>
-
+                <label class="fieldlabel" for="current-full-address">
+                    Full current address
+                </label>
+                <input
+                    type="text"
+                    id="current-full-address"
+                    maxlength="500"
+                    placeholder="Enter your full current address"
+                >
                 <label class="fieldlabel" for="current-flat">
                     Apartment / Flat number
                 </label>
@@ -185,7 +246,15 @@
                 <div class="statusbox" id="permanent-address-result">
                     No location selected.
                 </div>
-
+                <label class="fieldlabel" for="permanent-full-address">
+                    Full permanent address
+                </label>
+                <input
+                    type="text"
+                    id="permanent-full-address"
+                    maxlength="500"
+                    placeholder="Enter your full permanent address"
+                >
                 <label class="fieldlabel" for="permanent-flat">
                     Apartment / Flat number
                 </label>
@@ -652,10 +721,44 @@
         document.getElementById(`${type}-latitude`).value = lat;
         document.getElementById(`${type}-longitude`).value = lng;
 
-        document.getElementById(`${type}-address-result`).textContent =
-            `Selected location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        lookupSelectedAddress(type, lat, lng);
 
         map.setView([lat, lng], 16);
+    }
+
+    async function lookupSelectedAddress(type, lat, lng) {
+        const result = document.getElementById(`${type}-address-result`);
+
+        result.textContent = 'Looking up address...';
+
+        try {
+            const response = await fetch('/api/address/lookup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': telegramInitData
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lng,
+                    full_address: ''
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Address lookup failed.');
+            }
+
+            result.textContent = 'Address found. You can edit it below.';
+            document.getElementById(`${type}-full-address`).value =
+                data.full_address || '';
+
+        } catch (error) {
+            result.textContent = error.message;
+            console.error('Address lookup error:', error);
+        }
     }
     function getCurrentLocation(type) {
         if (!navigator.geolocation) {
@@ -692,14 +795,136 @@
             }
         );
     }
+    document.getElementById('address-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
 
+        const message = document.getElementById('address-message');
+        message.textContent = 'Preparing address information...';
+
+        const addressType = document.getElementById('address-type').value;
+        const currentLat = document.getElementById('current-latitude').value;
+        const currentLng = document.getElementById('current-longitude').value;
+
+        if (!currentLat || !currentLng) {
+            message.textContent = 'Please select your current address on the map.';
+            return;
+        }
+
+        if (addressType !== 'OWN') {
+            const permanentLat = document.getElementById('permanent-latitude').value;
+            const permanentLng = document.getElementById('permanent-longitude').value;
+
+            if (!permanentLat || !permanentLng) {
+                message.textContent = 'Please select your permanent address on the map.';
+                return;
+            }
+        }
+        const payload = {
+            address_type: addressType,
+            current_address: {
+                latitude: Number(document.getElementById('current-latitude').value),
+                longitude: Number(document.getElementById('current-longitude').value),
+                full_address: document.getElementById('current-full-address').value.trim(),
+                flat_number: document.getElementById('current-flat').value.trim()
+            }
+        };
+
+        if (addressType !== 'OWN') {
+            payload.permanent_address = {
+                latitude: Number(document.getElementById('permanent-latitude').value),
+                longitude: Number(document.getElementById('permanent-longitude').value),
+                full_address: document.getElementById('permanent-full-address').value.trim(),
+                flat_number: document.getElementById('permanent-flat').value.trim()
+            };
+        }
+
+        try {
+            message.textContent = 'Saving address...';
+
+            const response = await fetch('/api/address/me', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': window.Telegram.WebApp.initData
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to save address.');
+            }
+
+            message.textContent = 'Address saved successfully.';
+            console.log('Saved address:', data);
+
+        } catch (error) {
+            console.error('Address save error:', error);
+            message.textContent = error.message || 'An error occurred while saving.';
+        }
+    });
     const screens=[...document.querySelectorAll('.screen')],nav=[...document.querySelectorAll('.nav')];
-    function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')||(id==='profile'&&n.dataset.go==='home')));window.scrollTo({top:0,behavior:'smooth'})
+    function show(id) {
+    if (id === 'address' && !addressConsentGranted) {
+        id = 'address-consent';
+    }
+    screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')||(id==='profile'&&n.dataset.go==='home')));window.scrollTo({top:0,behavior:'smooth'})
         if (id === 'address') {
             initAddressMaps();
         }
     }
     document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.go)));
+    const consentCheckbox = document.getElementById('address-consent-checkbox');
+    const consentAccept = document.getElementById('address-consent-accept');
+
+    let addressConsentGranted = false;
+
+    consentCheckbox.addEventListener('change', () => {
+        consentAccept.disabled = !consentCheckbox.checked;
+    });
+
+    consentAccept.addEventListener('click', () => {
+        if (!consentCheckbox.checked) return;
+
+        const locationManager = telegram?.LocationManager;
+
+        if (!locationManager) {
+            alert('Location access is not supported in this Telegram version. Please update Telegram.');
+            return;
+        }
+
+        locationManager.init(() => {
+            if (!locationManager.isLocationAvailable) {
+                alert('Location services are unavailable on this device.');
+                return;
+            }
+
+            locationManager.getLocation((location) => {
+                if (!location) {
+                    alert('Location permission was not granted. Please allow location access to continue.');
+                    return;
+                }
+
+                addressConsentGranted = true;
+                show('address');
+
+                selectAddressLocation(
+                    'current',
+                    location.latitude,
+                    location.longitude
+                );
+            });
+        });
+    });
+
+    document.getElementById('address-consent-decline')
+        .addEventListener('click', () => {
+            addressConsentGranted = false;
+            consentCheckbox.checked = false;
+            consentAccept.disabled = true;
+            show('home');
+        });
     function openHemis(){window.open('https://student-nukus.utu-ranch.uz/dashboard/login','_blank','noopener,noreferrer')}
     document.getElementById('home-open-hemis').addEventListener('click',openHemis);document.getElementById('open-recovery').addEventListener('click',openHemis);
     document.getElementById('credentials-form').addEventListener('submit', async e => {

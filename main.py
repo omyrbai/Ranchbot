@@ -103,7 +103,7 @@ _nominatim_lock = Lock()
 _last_nominatim_request = 0.0
 
 
-def get_full_address(latitude: float, longitude: float) -> str:
+def get_full_address(latitude: float, longitude: float) -> dict:
     global _last_nominatim_request
 
     params = urllib.parse.urlencode({
@@ -117,7 +117,7 @@ def get_full_address(latitude: float, longitude: float) -> str:
         f"{NOMINATIM_URL}?{params}",
         headers={
             "User-Agent": NOMINATIM_USER_AGENT,
-            "Accept-Language": "ru",
+            "Accept-Language": "ru,uz,en",
         },
     )
 
@@ -130,25 +130,59 @@ def get_full_address(latitude: float, longitude: float) -> str:
         try:
             with urllib.request.urlopen(request, timeout=10) as response:
                 data = json.loads(response.read().decode("utf-8"))
+
         except urllib.error.URLError:
             logger.exception("Nominatim request failed")
             raise HTTPException(
                 status_code=503,
                 detail="Address lookup is temporarily unavailable."
             )
+
         finally:
             _last_nominatim_request = time.monotonic()
 
-    address = data.get("display_name")
+    address = data.get("address", {})
 
-    if not address:
+    city = (
+        address.get("city")
+        or address.get("town")
+        or address.get("village")
+        or address.get("municipality")
+    )
+
+    neighborhood = (
+        address.get("neighbourhood")
+        or address.get("suburb")
+        or address.get("quarter")
+    )
+
+    street = (
+            address.get("road")
+            or address.get("pedestrian")
+            or address.get("residential")
+            or "Ati belgilenbegen koshe"
+    )
+
+    house_number = address.get("house_number") or "nomersiz jay"
+
+    full_address = ", ".join(
+        part for part in [city, neighborhood, street, house_number]
+        if part
+    )
+
+    if not full_address:
         raise HTTPException(
             status_code=422,
             detail="No readable address found for this location."
         )
 
-    return address
-# ---------------------------------------------------------------------------
+    return {
+        "city": city,
+        "neighborhood": neighborhood,
+        "street": street,
+        "house_number": house_number,
+        "full_address": full_address,
+    }# ---------------------------------------------------------------------------
 # Database: reuse ranchbot_db.users; do not create a second users table.
 # ---------------------------------------------------------------------------
 
@@ -160,6 +194,7 @@ class PhoneChangeRequest(BaseModel):
 class AddressLocationRequest(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
+    full_address: str | None = Field(default=None, max_length=500)
     flat_number: str | None = Field(default=None, max_length=30)
 
 
@@ -806,6 +841,19 @@ def get_my_student_profile(
     }
 
 
+@app.post("/api/address/lookup")
+def lookup_address(
+    request: AddressLocationRequest,
+    current_user: dict = Depends(require_registered_telegram_user)
+):
+    result = get_full_address(
+        request.latitude,
+        request.longitude
+    )
+
+    return result
+
+
 @app.get("/api/address/me")
 def get_my_addresses(
     current_user: dict = Depends(require_registered_telegram_user)
@@ -890,7 +938,7 @@ def save_my_addresses(
     current_full_address = get_full_address(
         request.current_address.latitude,
         request.current_address.longitude
-    )
+    )["full_address"]
 
     permanent_full_address = None
 
@@ -898,7 +946,7 @@ def save_my_addresses(
         permanent_full_address = get_full_address(
             request.permanent_address.latitude,
             request.permanent_address.longitude
-        )
+        )["full_address"]
 
     connection = get_db_connection()
 
