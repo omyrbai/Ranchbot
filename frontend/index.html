@@ -607,6 +607,9 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(currentMap);
+            currentMap.on('click', function(e) {
+                selectAddressLocation('current', e.latlng.lat, e.latlng.lng);
+            });
         }
 
         if (!permanentMap) {
@@ -616,12 +619,35 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(permanentMap);
+            permanentMap.on('click', function(e) {
+                selectAddressLocation('permanent', e.latlng.lat, e.latlng.lng);
+            });
         }
 
         setTimeout(() => {
             currentMap.invalidateSize();
             permanentMap.invalidateSize();
         }, 200);
+
+        if (marker) {
+            map.removeLayer(marker);
+        }
+
+        const newMarker = L.marker([lat, lng]).addTo(map);
+
+        if (isCurrent) {
+            currentMarker = newMarker;
+        } else {
+            permanentMarker = newMarker;
+        }
+
+        document.getElementById(`${type}-latitude`).value = lat;
+        document.getElementById(`${type}-longitude`).value = lng;
+
+        document.getElementById(`${type}-address-result`).textContent =
+            `Selected location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+        map.setView([lat, lng], 16);
     }
     const screens=[...document.querySelectorAll('.screen')],nav=[...document.querySelectorAll('.nav')];
     function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')||(id==='profile'&&n.dataset.go==='home')));window.scrollTo({top:0,behavior:'smooth'})
