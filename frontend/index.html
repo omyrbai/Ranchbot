@@ -665,6 +665,8 @@
     let currentMarker = null;
     let permanentMarker = null;
 
+    let currentAddressSelectionVersion = 0;
+
     function initAddressMaps() {
         if (typeof L === 'undefined') {
             console.error('Leaflet library is not loaded.');
@@ -701,10 +703,91 @@
         }, 200);
 
     }
+    async function loadMyAddresses() {
+        const message = document.getElementById('address-message');
+        message.textContent = 'Loading your saved addresses...';
+        const selectionVersionAtLoad = currentAddressSelectionVersion;
+        try {
+            const response = await fetch('/api/address/me', {
+                method: 'GET',
+                headers: {
+                    'X-Telegram-Init-Data': telegramInitData
+                }
+            });
 
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Could not load saved addresses.');
+            }
+
+            const addresses = data.addresses || [];
+
+            if (addresses.length === 0) {
+                message.textContent = 'No saved addresses found. Please enter your addresses.';
+                return;
+            }
+
+            const current = addresses.find(a => a.address_role === 'CURRENT');
+            const permanent = addresses.find(a => a.address_role === 'PERMANENT');
+
+            function restoreAddress(type, address, map) {
+                if (!address) return;
+
+                const lat = Number(address.latitude);
+                const lng = Number(address.longitude);
+
+                document.getElementById(`${type}-latitude`).value = lat;
+                document.getElementById(`${type}-longitude`).value = lng;
+                document.getElementById(`${type}-full-address`).value =
+                    address.full_address || '';
+
+                const oldMarker = type === 'current' ? currentMarker : permanentMarker;
+
+                if (oldMarker) {
+                    map.removeLayer(oldMarker);
+                }
+
+                const marker = L.marker([lat, lng]).addTo(map);
+
+                if (type === 'current') {
+                    currentMarker = marker;
+                } else {
+                    permanentMarker = marker;
+                }
+
+                map.setView([lat, lng], 16);
+
+                document.getElementById(`${type}-address-result`).textContent =
+                    'Saved address loaded.';
+            }
+
+            if (current) {
+                document.getElementById('address-type').value = current.address_type;
+
+                if (currentAddressSelectionVersion === selectionVersionAtLoad) {
+                    restoreAddress('current', current, currentMap);
+                }
+            }
+
+            updatePermanentAddressVisibility();
+
+            if (permanent) {
+                restoreAddress('permanent', permanent, permanentMap);
+            }
+
+            message.textContent = 'Your saved addresses have been loaded.';
+
+        } catch (error) {
+            console.error('Address loading error:', error);
+            message.textContent = error.message || 'Could not load saved addresses.';
+        }
+    }
     function selectAddressLocation(type, lat, lng) {
         const isCurrent = type === 'current';
-
+        if (isCurrent) {
+            currentAddressSelectionVersion++;
+        }
         const map = isCurrent ? currentMap : permanentMap;
         const marker = isCurrent ? currentMarker : permanentMarker;
 
@@ -874,6 +957,7 @@
     screens.forEach(s=>s.classList.toggle('active',s.id===id));nav.forEach(n=>n.classList.toggle('active',n.dataset.go===id||(['find','report'].includes(id)&&n.dataset.go==='contract')||(['hemis-login','password','phone'].includes(id)&&n.dataset.go==='hemis')||(id==='profile'&&n.dataset.go==='home')));window.scrollTo({top:0,behavior:'smooth'})
         if (id === 'address') {
             initAddressMaps();
+            loadMyAddresses();
         }
     }
     document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.go)));
@@ -881,7 +965,14 @@
     const permanentAddressSection = document.getElementById('permanent-address-section');
 
     function updatePermanentAddressVisibility() {
-        permanentAddressSection.hidden = addressTypeSelect.value === 'OWN';
+        const isOwn = addressTypeSelect.value === 'OWN';
+        permanentAddressSection.hidden = isOwn;
+
+        if (!isOwn && permanentMap) {
+            setTimeout(() => {
+                permanentMap.invalidateSize();
+            }, 200);
+        }
     }
 
     addressTypeSelect.addEventListener('change', updatePermanentAddressVisibility);
