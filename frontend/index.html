@@ -1053,7 +1053,7 @@
         const locationManager = telegram?.LocationManager;
 
         if (!locationManager) {
-            alert('Location access is not supported in this Telegram version. Please update Telegram.');
+            telegram.showAlert('Location access is not supported in this Telegram version. Please update Telegram.');
             return;
         }
 
@@ -1070,7 +1070,7 @@
 
             locationManager.getLocation((location) => {
                 if (!location) {
-                    alert('Location permission was not granted. Please allow location access to continue.');
+                    telegram.showAlert('Location permission was not granted. Please allow location access to continue.');
                     return;
                 }
 
@@ -1499,13 +1499,13 @@
 
         // Validate the identification number
         if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
-            alert("Enter a valid ID number, for example AB1234567.");
+            telegram.showAlert("Enter a valid ID number, for example AB1234567.");
             return;
         }
 
         // Validate the phone number
         if (phoneDigits.length !== 9) {
-            alert("Enter a valid phone number containing 9 digits.");
+            telegram.showAlert("Enter a valid phone number containing 9 digits.");
             return;
         }
 
