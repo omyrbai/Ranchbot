@@ -54,14 +54,57 @@
             background-color: Highlight;
             color: HighlightText;
         }
+        /* =========================================
+           RESIDENTIAL STATUS DROPDOWN
+        ========================================= */
+
+        #address-type {
+            display: block;
+            width: 100%;
+            min-height: 50px;
+            padding: 13px 42px 13px 12px;
+
+            border: 1px solid #d8dfeb;
+            border-radius: 12px;
+
+            background-color: #ffffff;
+            color: var(--ink);
+
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+
+            outline: none;
+            cursor: pointer;
+
+            appearance: none;
+            -webkit-appearance: none;
+
+            /* Custom dropdown arrow */
+            background-image:
+                linear-gradient(45deg, transparent 50%, #778196 50%),
+                linear-gradient(135deg, #778196 50%, transparent 50%);
+
+            background-position:
+                calc(100% - 17px) 22px,
+                calc(100% - 12px) 22px;
+
+            background-size: 5px 5px;
+            background-repeat: no-repeat;
+        }
+
+        #address-type:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px var(--blue-soft);
+        }
     </style>
     <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
 
     <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 </head>
 <body>
@@ -158,18 +201,18 @@
             </label>
 
             <button
-                type="button"
-                class="primary"
-                id="address-consent-accept"
-                disabled
+                    type="button"
+                    class="primary"
+                    id="address-consent-accept"
+                    disabled
             >
                 Agree and continue
             </button>
 
             <button
-                type="button"
-                class="secondary"
-                id="address-consent-decline"
+                    type="button"
+                    class="secondary"
+                    id="address-consent-decline"
             >
                 Decline and return home
             </button>
@@ -208,23 +251,23 @@
                     Landlord's full name
                 </label>
                 <input
-                    type="text"
-                    id="landlord-fullname"
-                    maxlength="150"
-                    autocomplete="off"
-                    placeholder="Enter landlord's full name"
-                    spellcheck="false"
+                        type="text"
+                        id="landlord-fullname"
+                        maxlength="150"
+                        autocomplete="off"
+                        placeholder="Enter landlord's full name"
+                        spellcheck="false"
                 >
                 <label class="fieldlabel" for="landlord-phone">
                     Landlord's phone number
                 </label>
                 <div class="phone-field">
                     <span class="phone-prefix">+998</span><input autocomplete="tel-national"
-                                                                                      id="landlord-phone"
-                                                                                      inputmode="numeric"
-                                                                                      maxlength="12"
-                                                                                      placeholder="99 999 99 99"
-                                                                                      required type="tel"></div>
+                                                                 id="landlord-phone"
+                                                                 inputmode="numeric"
+                                                                 maxlength="12"
+                                                                 placeholder="99 999 99 99"
+                                                                 required type="tel"></div>
                 <div class="note">Enter the remaining 9 digits. The country code +998 is already included.</div>
             </div>
             <!-- Current address -->
@@ -252,10 +295,10 @@
                     Full current address
                 </label>
                 <input
-                    type="text"
-                    id="current-full-address"
-                    maxlength="500"
-                    placeholder="Enter your full current address"
+                        type="text"
+                        id="current-full-address"
+                        maxlength="500"
+                        placeholder="Enter your full current address"
                 >
                 <input type="hidden" id="current-latitude">
                 <input type="hidden" id="current-longitude">
@@ -286,10 +329,10 @@
                     Full permanent address
                 </label>
                 <input
-                    type="text"
-                    id="permanent-full-address"
-                    maxlength="500"
-                    placeholder="Enter your full permanent address"
+                        type="text"
+                        id="permanent-full-address"
+                        maxlength="500"
+                        placeholder="Enter your full permanent address"
                 >
                 <input type="hidden" id="permanent-latitude">
                 <input type="hidden" id="permanent-longitude">
