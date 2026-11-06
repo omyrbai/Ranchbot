@@ -244,7 +244,7 @@
             </div>
 
             <!-- Permanent address -->
-            <div class="panel">
+            <div class="panel" id="permanent-address-section" hidden>
                 <h2>Permanent address</h2>
                 <p class="note">
                     Select your permanent home address.
@@ -779,39 +779,41 @@
         }
     }
     function getCurrentLocation(type) {
-        if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser.');
+        const button = document.getElementById(`${type}-location-button`);
+        const result = document.getElementById(`${type}-address-result`);
+        const locationManager = telegram?.LocationManager;
+
+        if (!locationManager) {
+            result.textContent =
+                'Automatic location is unavailable. Please select your location manually on the map.';
             return;
         }
 
-        const button = document.getElementById(`${type}-location-button`);
+        locationManager.init(() => {
+            if (!locationManager.isLocationAvailable) {
+                result.textContent =
+                    'GPS is unavailable. Please select your location manually on the map.';
 
-        button.disabled = true;
-        button.textContent = 'Getting location...';
-
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-
-                selectAddressLocation(type, lat, lng);
-
-                button.disabled = false;
-                button.textContent = '📍 Get my current location';
-            },
-            function(error) {
-                button.disabled = false;
-                button.textContent = '📍 Get my current location';
-
-                alert('Unable to get your location. Please allow location access and try again.');
-                console.error(error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0
+                return;
             }
-        );
+
+            locationManager.getLocation((location) => {
+                button.disabled = false;
+                button.textContent = '📍 Get my current location';
+
+                if (!location) {
+                    result.textContent =
+                        'Location could not be obtained. Please select your location manually on the map.';
+                    return;
+                }
+
+                selectAddressLocation(
+                    type,
+                    location.latitude,
+                    location.longitude
+                );
+            });
+        });
     }
     document.getElementById('address-form').addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -893,6 +895,17 @@
         }
     }
     document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.go)));
+    const addressTypeSelect = document.getElementById('address-type');
+    const permanentAddressSection = document.getElementById('permanent-address-section');
+
+    function updatePermanentAddressVisibility() {
+        permanentAddressSection.hidden = addressTypeSelect.value === 'OWN';
+    }
+
+    addressTypeSelect.addEventListener('change', updatePermanentAddressVisibility);
+
+    // Set the correct visibility when the form is first opened.
+    updatePermanentAddressVisibility();
     const consentCheckbox = document.getElementById('address-consent-checkbox');
     const consentAccept = document.getElementById('address-consent-accept');
 
