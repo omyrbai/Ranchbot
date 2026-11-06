@@ -100,9 +100,6 @@
             <h2>Your student services,<br>in one place.</h2>
             <p>Access HEMIS guidance and check your contract payment status.</p>
             <button class="lightbtn" id="home-open-hemis">Open HEMIS website ↗</button>
-            <button class="secondary" id="test-telegram-alert">
-                Test Telegram popup
-            </button>
         </div>
         <div class="sectionhead">
             <h2>Services</h2>
@@ -641,13 +638,6 @@
     }
     verifyAccess();
 
-    document.getElementById('test-telegram-alert')
-    .addEventListener('click', () => {
-        telegram.showAlert(
-            'This is a test popup. Your website address should not appear here.',
-            () => console.log('Telegram popup closed.')
-        );
-    });
 
     async function apiGet(path) {
       if (!telegramInitData) throw new Error('Open this Mini App from the bot.');
