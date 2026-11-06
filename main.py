@@ -195,7 +195,6 @@ class AddressLocationRequest(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     full_address: str | None = Field(default=None, max_length=500)
-    flat_number: str | None = Field(default=None, max_length=30)
 
 
 class SaveAddressRequest(BaseModel):
@@ -878,8 +877,7 @@ def get_my_addresses(
                     address_id,
                     latitude,
                     longitude,
-                    full_address,
-                    flat_number,
+                    full_address,                    
                     address_type,
                     address_role,
                     is_current,
@@ -972,16 +970,15 @@ def save_my_addresses(
                 """
                 INSERT INTO addresses (
                     hemis_id, latitude, longitude, full_address,
-                    flat_number, address_type, address_role, is_current
+                    address_type, address_role, is_current
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, 'CURRENT', 1)
+                VALUES (%s, %s, %s, %s, %s, 'CURRENT', 1)
                 """,
                 (
                     hemis_id,
                     request.current_address.latitude,
                     request.current_address.longitude,
                     current_full_address,
-                    request.current_address.flat_number,
                     request.address_type
                 )
             )
@@ -1001,12 +998,10 @@ def save_my_addresses(
             if request.address_type == "OWN":
                 permanent_latitude = request.current_address.latitude
                 permanent_longitude = request.current_address.longitude
-                permanent_flat_number = request.current_address.flat_number
                 permanent_address_text = current_full_address
             else:
                 permanent_latitude = request.permanent_address.latitude
                 permanent_longitude = request.permanent_address.longitude
-                permanent_flat_number = request.permanent_address.flat_number
                 permanent_address_text = permanent_full_address
 
             # Insert new PERMANENT address.
@@ -1014,16 +1009,15 @@ def save_my_addresses(
                 """
                 INSERT INTO addresses (
                     hemis_id, latitude, longitude, full_address,
-                    flat_number, address_type, address_role, is_current
+                    address_type, address_role, is_current
                 )
-                VALUES (%s, %s, %s, %s, %s, 'OWN', 'PERMANENT', 1)
+                VALUES (%s, %s, %s, %s, 'OWN', 'PERMANENT', 1)
                 """,
                 (
                     hemis_id,
                     permanent_latitude,
                     permanent_longitude,
-                    permanent_address_text,
-                    permanent_flat_number
+                    permanent_address_text
                 )
             )
 

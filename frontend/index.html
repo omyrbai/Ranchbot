@@ -231,14 +231,6 @@
                     maxlength="500"
                     placeholder="Enter your full current address"
                 >
-                <label class="fieldlabel" for="current-flat">
-                    Apartment / Flat number
-                </label>
-                <input type="text"
-                       id="current-flat"
-                       maxlength="30"
-                       placeholder="Enter apartment or flat number">
-
                 <input type="hidden" id="current-latitude">
                 <input type="hidden" id="current-longitude">
             </div>
@@ -273,14 +265,6 @@
                     maxlength="500"
                     placeholder="Enter your full permanent address"
                 >
-                <label class="fieldlabel" for="permanent-flat">
-                    Apartment / Flat number
-                </label>
-                <input type="text"
-                       id="permanent-flat"
-                       maxlength="30"
-                       placeholder="Enter apartment or flat number">
-
                 <input type="hidden" id="permanent-latitude">
                 <input type="hidden" id="permanent-longitude">
             </div>
@@ -844,8 +828,7 @@
             current_address: {
                 latitude: Number(document.getElementById('current-latitude').value),
                 longitude: Number(document.getElementById('current-longitude').value),
-                full_address: document.getElementById('current-full-address').value.trim(),
-                flat_number: document.getElementById('current-flat').value.trim()
+                full_address: document.getElementById('current-full-address').value.trim()
             }
         };
 
@@ -853,8 +836,7 @@
             payload.permanent_address = {
                 latitude: Number(document.getElementById('permanent-latitude').value),
                 longitude: Number(document.getElementById('permanent-longitude').value),
-                full_address: document.getElementById('permanent-full-address').value.trim(),
-                flat_number: document.getElementById('permanent-flat').value.trim()
+                full_address: document.getElementById('permanent-full-address').value.trim()
             };
         }
 
