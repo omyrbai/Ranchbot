@@ -112,14 +112,14 @@ def get_full_address(latitude: float, longitude: float) -> dict:
         "lon": longitude,
         "format": "jsonv2",
         "addressdetails": 1,
-        "accept-language": "kaa,ru",
+        "accept-language": "kaa",
     })
 
     request = urllib.request.Request(
         f"{NOMINATIM_URL}?{params}",
         headers={
             "User-Agent": NOMINATIM_USER_AGENT,
-            "Accept-Language": "kaa,ru",
+            "Accept-Language": "kaa",
         },
     )
 
