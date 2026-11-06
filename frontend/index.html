@@ -1640,30 +1640,48 @@
     const languageSelect = document.getElementById('language-select');
     const originalText = new WeakMap();
     const originalAttrs = new WeakMap();
+
     function normalizeTranslationText(value) {
-      return String(value || '').replace(/\\s+/g, ' ').trim();
+        return String(value || '').replace(/\s+/g, ' ').trim();
     }
+
     function translateText(value, lang) {
-      if (!value) return value;
-      const dictionary = translations[lang] || {};
-      const normalized = normalizeTranslationText(value);
+        if (!value) return value;
 
-      // Match dictionary keys even when HTML line breaks or indentation add whitespace.
-      if (Object.prototype.hasOwnProperty.call(dictionary, normalized)) {
-        return String(value).replace(normalized, dictionary[normalized]);
-      }
+        const dictionary = translations[lang] || {};
+        const normalized = normalizeTranslationText(value);
 
-      // Also support keys that have been shortened to names like "find_contract".
-      // If no direct key exists, translate the original visible phrase instead.
-      let translated = value;
-      for (const phrase of Object.keys(dictionary).sort((a, b) => b.length - a.length)) {
-        if (!phrase || phrase.length < 2) continue;
-        const escaped = phrase.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
-        const pattern = new RegExp(escaped.replace(/\\s+/g, '\\\\s+'), 'g');
-        translated = translated.replace(pattern, dictionary[phrase]);
-      }
-      return translated;
+        if (!normalized) return value;
+
+        // Exact dictionary match, including HTML whitespace.
+        if (Object.prototype.hasOwnProperty.call(dictionary, normalized)) {
+            const leading = String(value).match(/^\s*/)?.[0] || '';
+            const trailing = String(value).match(/\s*$/)?.[0] || '';
+
+            return leading + dictionary[normalized] + trailing;
+        }
+
+        // Match phrases even when whitespace differs.
+        let translated = String(value);
+
+        for (const phrase of Object.keys(dictionary).sort(
+            (a, b) => b.length - a.length
+        )) {
+            if (!phrase || phrase.length < 2) continue;
+
+            const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            const pattern = new RegExp(
+                escaped.replace(/\s+/g, '\\s+'),
+                'g'
+            );
+
+            translated = translated.replace(pattern, dictionary[phrase]);
+        }
+
+        return translated;
     }
+
     function translateElementText(root, lang) {
       // Translate explicitly keyed elements using short keys from translations.json.
       // Skip their text nodes below so switching languages always starts from the key,
