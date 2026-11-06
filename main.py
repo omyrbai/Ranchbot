@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+import unicodedata
 import time
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
@@ -201,7 +202,33 @@ class SaveAddressRequest(BaseModel):
     address_type: Literal["OWN", "RENT", "NOT_RENT"]
     current_address: AddressLocationRequest
     permanent_address: AddressLocationRequest | None = None
+    landlord_fullname: str | None = Field(default=None, max_length=150)
+    landlord_phone: str | None = Field(default=None, max_length=13)
 
+def normalize_landlord_fullname(value: str) -> str:
+    name = value.strip()
+
+    allowed_punctuation = {" ", "-", "'", "’", "‘", "ʻ", "ʼ"}
+
+    if not name:
+        raise HTTPException(
+            status_code=422,
+            detail="Please enter the landlord's full name."
+        )
+
+    for character in name:
+        is_latin_letter = (
+            unicodedata.category(character).startswith("L")
+            and "LATIN" in unicodedata.name(character, "")
+        )
+
+        if not is_latin_letter and character not in allowed_punctuation:
+            raise HTTPException(
+                status_code=422,
+                detail="Landlord's name must use Latin letters only. Cyrillic letters and numbers are not allowed."
+            )
+
+    return name.upper()
 
 def get_db_connection():
     if not DB_PASSWORD:
@@ -879,6 +906,8 @@ def get_my_addresses(
                     longitude,
                     full_address,                    
                     address_type,
+                    landlord_fullname,
+                    landlord_phone,
                     address_role,
                     is_current,
                     created_at,
@@ -934,6 +963,27 @@ def save_my_addresses(
             detail="A permanent address is required."
         )
 
+    landlord_fullname = None
+    landlord_phone = None
+
+    if request.address_type == "RENT":
+        if not request.landlord_fullname:
+            raise HTTPException(
+                status_code=422,
+                detail="Please enter the landlord's full name."
+            )
+
+        landlord_fullname = normalize_landlord_fullname(
+            request.landlord_fullname
+        )
+
+        landlord_phone = (request.landlord_phone or "").strip()
+
+        if not re.fullmatch(r"\+998\d{9}", landlord_phone):
+            raise HTTPException(
+                status_code=422,
+                detail="Landlord's phone number must use the format +998991231212."
+            )
     current_full_address = get_full_address(
         request.current_address.latitude,
         request.current_address.longitude
@@ -970,16 +1020,19 @@ def save_my_addresses(
                 """
                 INSERT INTO addresses (
                     hemis_id, latitude, longitude, full_address,
-                    address_type, address_role, is_current
+                    address_type, landlord_fullname, landlord_phone,
+                    address_role, is_current
                 )
-                VALUES (%s, %s, %s, %s, %s, 'CURRENT', 1)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'CURRENT', 1)
                 """,
                 (
                     hemis_id,
                     request.current_address.latitude,
                     request.current_address.longitude,
                     current_full_address,
-                    request.address_type
+                    request.address_type,
+                    landlord_fullname,
+                    landlord_phone
                 )
             )
 

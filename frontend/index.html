@@ -200,7 +200,33 @@
                     <option value="NOT_RENT">Living with relatives or friends without paying rent</option>
                 </select>
             </div>
+            <!-- Landlord information -->
+            <div class="panel" id="landlord-section" hidden>
+                <h2>Landlord information</h2>
 
+                <label class="fieldlabel" for="landlord-fullname">
+                    Landlord's full name
+                </label>
+                <input
+                    type="text"
+                    id="landlord-fullname"
+                    maxlength="150"
+                    autocomplete="off"
+                    placeholder="Enter landlord's full name"
+                    spellcheck="false"
+                >
+                <label class="fieldlabel" for="landlord-phone">
+                    Landlord's phone number
+                </label>
+                <div class="phone-field">
+                    <span class="phone-prefix">+998</span><input autocomplete="tel-national"
+                                                                                      id="landlord-phone"
+                                                                                      inputmode="numeric"
+                                                                                      maxlength="12"
+                                                                                      placeholder="99 999 99 99"
+                                                                                      required type="tel"></div>
+                <div class="note">Enter the remaining 9 digits. The country code +998 is already included.</div>
+            </div>
             <!-- Current address -->
             <div class="panel">
                 <h2>Current address</h2>
@@ -764,7 +790,12 @@
 
             if (current) {
                 document.getElementById('address-type').value = current.address_type;
+                if (current.address_type === 'RENT') {
+                    landlordFullnameInput.value = current.landlord_fullname || '';
 
+                    const savedPhone = (current.landlord_phone || '').replace(/^\+998/, '');
+                    landlordPhoneInput.value = formatUzPhone(savedPhone);
+                }
                 if (currentAddressSelectionVersion === selectionVersionAtLoad) {
                     restoreAddress('current', current, currentMap);
                 }
@@ -923,6 +954,19 @@
             };
         }
 
+        if (addressType === 'RENT') {
+            const landlordPhoneDigits = landlordPhoneInput.value.replace(/\D/g, '');
+
+            if (landlordPhoneDigits.length !== 9) {
+                message.textContent = 'Please enter a valid 9-digit landlord phone number.';
+                landlordPhoneInput.focus();
+                return;
+            }
+
+            payload.landlord_fullname = landlordFullnameInput.value.trim();
+            payload.landlord_phone = '+998' + landlordPhoneDigits;
+        }
+
         try {
             message.textContent = 'Saving address...';
 
@@ -964,10 +1008,25 @@
     const addressTypeSelect = document.getElementById('address-type');
     const permanentAddressSection = document.getElementById('permanent-address-section');
 
+    const landlordSection = document.getElementById('landlord-section');
+    const landlordFullnameInput = document.getElementById('landlord-fullname');
+    const landlordPhoneInput = document.getElementById('landlord-phone');
+    landlordFullnameInput.addEventListener('input', () => {
+        const cursorPosition = landlordFullnameInput.selectionStart;
+
+        landlordFullnameInput.value = landlordFullnameInput.value
+            .toUpperCase()
+            .replace(/[^\p{Script=Latin}\s\-‘’'ʻʼ]/gu, '');
+
+        landlordFullnameInput.setSelectionRange(cursorPosition, cursorPosition);
+    });
     function updatePermanentAddressVisibility() {
         const isOwn = addressTypeSelect.value === 'OWN';
         permanentAddressSection.hidden = isOwn;
-
+        const isRent = addressTypeSelect.value === 'RENT';
+        landlordSection.hidden = !isRent;
+        landlordFullnameInput.required = isRent;
+        landlordPhoneInput.required = isRent;
         if (!isOwn && permanentMap) {
             setTimeout(() => {
                 permanentMap.invalidateSize();
@@ -1388,6 +1447,22 @@
       let pos=0, seen=0;
       while(pos<phoneInput.value.length && seen<digitCount){if(/\d/.test(phoneInput.value[pos]))seen++;pos++;}
       phoneInput.setSelectionRange(pos,pos);
+    });
+
+    landlordPhoneInput.addEventListener('input', () => {
+        const start = landlordPhoneInput.selectionStart;
+        const before = landlordPhoneInput.value.slice(0, start);
+        const digitCount = before.replace(/\D/g, '').length;
+
+        landlordPhoneInput.value = formatUzPhone(landlordPhoneInput.value);
+
+        let pos = 0, seen = 0;
+        while (pos < landlordPhoneInput.value.length && seen < digitCount) {
+            if (/\d/.test(landlordPhoneInput.value[pos])) seen++;
+            pos++;
+        }
+
+        landlordPhoneInput.setSelectionRange(pos, pos);
     });
     const idPattern=/^[A-Z]{2}\d{7}$/;
     function setupStudentId(id){
