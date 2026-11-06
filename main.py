@@ -887,7 +887,8 @@ def get_my_addresses(
                     updated_at
                 FROM addresses
                 WHERE hemis_id = %s
-                ORDER BY is_current DESC, created_at DESC
+                  AND is_current = 1
+                ORDER BY address_role
                 """,
                 (hemis_id,)
             )

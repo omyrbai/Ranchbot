@@ -142,8 +142,8 @@
 
             <p class="note">
                 Your selected coordinates and address details will be sent
-                to Regofisbot and stored in the database for processing by
-                university side and for address registration purposes.
+                to Regofisbot and stored for processing by university side
+                and for address registration purposes.
             </p>
 
             <p class="note">
@@ -914,7 +914,12 @@
 
         locationManager.init(() => {
             if (!locationManager.isLocationAvailable) {
-                alert('Location services are unavailable on this device.');
+                addressConsentGranted = true;
+                show('address');
+
+                document.getElementById('current-address-result').textContent =
+                    'GPS is unavailable. Please select your location manually on the map.';
+
                 return;
             }
 
