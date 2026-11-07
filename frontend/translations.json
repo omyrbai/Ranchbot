@@ -236,7 +236,8 @@
     "Address saved successfully.": "Address saved successfully.",
     "Failed to save address.": "Failed to save address.",
     "An error occurred while saving.": "An error occurred while saving.",
-    "Your saved addresses have been loaded.": "Your saved addresses have been loaded."
+    "Your saved addresses have been loaded.": "Your saved addresses have been loaded.",
+    "address_service_desc": "Enter and update your residential address information"
   },
   "kk": {
     "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "Tólem sánesinen keyin keminde 4 jumıs kúni ótkennen soń sáykesizlik haqqında arza jiberiwge boladı.",
@@ -475,7 +476,8 @@
     "Address saved successfully.": "Manzil tabıslı saqlandı.",
     "Failed to save address.": "Manzildi saqlaw múmkin bolmadı.",
     "An error occurred while saving.": "Saqlaw waqtında qátelik júz berdi.",
-    "Your saved addresses have been loaded.": "Siziń saqlanǵan maǵlıwmatlarıńız júklendi."
+    "Your saved addresses have been loaded.": "Siziń saqlanǵan maǵlıwmatlarıńız júklendi.",
+    "address_service_desc": "Jasaw manzilińiz maǵlıwmatların kiritiw hám jańalaw"
   },
   "uz": {
     "Student services": "Talabalar xizmatlari",
@@ -714,6 +716,7 @@
     "Address saved successfully.": "Manzil muvaffaqiyatli saqlandi.",
     "Failed to save address.": "Manzilni saqlab bo‘lmadi.",
     "An error occurred while saving.": "Saqlash vaqtida xatolik yuz berdi.",
-    "Your saved addresses have been loaded.": "Sizning saqlangan manzil ma'lumotlaringiz yuklandi."
+    "Your saved addresses have been loaded.": "Sizning saqlangan manzil ma'lumotlaringiz yuklandi.",
+    "address_service_desc": "Yashash manzilingiz haqidagi ma’lumotlarni kiritish va yangilash"
   }
 }
