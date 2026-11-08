@@ -1548,8 +1548,7 @@
         const phoneInput = document.getElementById("phone-local").value;
         const phoneDigits = phoneInput.replace(/\D/g, "");
         const successBox = document.getElementById("phone-success");
-        const submitButton = form.querySelector('button[type="submit"]');
-        const originalButtonText = submitButton.textContent;
+
         const submitButton = form.querySelector('button[type="submit"]');
         const originalButtonText = submitButton?.textContent || "Send request";
 
