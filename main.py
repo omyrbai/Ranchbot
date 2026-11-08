@@ -1542,16 +1542,32 @@ async def request_phone_change(
         )
 
     # 4. Get information about the registered Telegram user
+    print("\n========== PHONE CHANGE DEBUG ==========")
+
     telegram_id = current_user["tgid"]
     current_phone = current_user.get("phone") or "Not provided"
-    # Prevent requesting the phone number already registered with Telegram
-    registered_phone_digits = re.sub(r"\D", "", str(current_phone))[-9:]
+
+    registered_phone_digits = re.sub(
+        r"\D", "", str(current_phone)
+    )[-9:]
+
+    print("STEP 1: Endpoint reached")
+    print("STEP 2: Telegram ID:", telegram_id)
+    print("STEP 3: Registered phone available:", current_phone != "Not provided")
+    print("STEP 4: Registered phone matches submitted phone:",
+          registered_phone_digits == new_phone)
 
     if registered_phone_digits == new_phone:
+        print("RESULT: DUPLICATE PHONE NUMBER DETECTED")
+        print("=======================================\n")
+
         raise HTTPException(
             status_code=400,
             detail="This phone number is already registered to your Telegram account."
         )
+
+    print("RESULT: Phone number is different. Continuing request.")
+    print("=======================================\n")
     telegram_user = current_user.get("telegram_user") or {}
 
     first_name = telegram_user.get("first_name", "")

@@ -1593,7 +1593,7 @@
             });
 
             const result = await response.json().catch(() => ({}));
-
+            console.log("Phone change response:", response.status, result);
             if (!response.ok || result.ok !== true) {
                 throw new Error(
                     result.detail || result.message || "Failed to submit the request."
@@ -1620,6 +1620,8 @@
             form.reset();
 
         } catch (error) {
+            console.log("Phone change error:", error);
+            console.log("Telegram WebApp:", telegram);
             console.error("Phone-change request failed:", error);
 
             const lang = languageSelect.value;
