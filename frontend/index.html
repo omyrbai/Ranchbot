@@ -653,8 +653,14 @@
     function profileIconSvg() {
       return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="7.5" r="4.2" fill="currentColor"/><path d="M3.5 21c.5-5 3.6-7.6 8.5-7.6s8 2.6 8.5 7.6" fill="currentColor"/></svg>';
     }
+    let currentStudentPhone = '';
+
+    function normalizePhone(phone) {
+        return String(phone || '').replace(/\D/g, '').slice(-9);
+    }
 
     async function verifyAccess() {
+
       if (!telegram || !telegramInitData) {
         showAuthGate('Open the bot in Telegram', 'To protect student information, this Mini App can only be opened from the bot after you share your own phone number.');
         return;
@@ -671,9 +677,12 @@
         document.body.classList.add('auth-ready');
         authGate.style.display = 'none';
         try {
-          const student = await apiGet('/api/student/me');
-          document.getElementById('home-greeting').textContent = `Hello, ${student.fullname} 👋`;
-          setProfilePicture(student);
+            const student = await apiGet('/api/student/me');
+
+            currentStudentPhone = normalizePhone(student.phone);
+
+            document.getElementById('home-greeting').textContent = `Hello, ${student.fullname} 👋`;
+            setProfilePicture(student);
         } catch (profileError) {
           // Keep the Mini App usable if no unique HEMIS profile is matched yet.
           console.info('HEMIS profile not available:', profileError.message);
@@ -1540,7 +1549,7 @@
         const phoneDigits = phoneInput.replace(/\D/g, "");
         const successBox = document.getElementById("phone-success");
         const submitButton = form.querySelector('button[type="submit"]');
-
+        const originalButtonText = submitButton.textContent;
         // Hide the previous result
         successBox.textContent = "";
         successBox.style.display = "none";
@@ -1557,6 +1566,23 @@
             return;
         }
 
+        // Prevent requesting the already registered phone number
+        if (
+            currentStudentPhone &&
+            normalizePhone(phoneDigits) === currentStudentPhone
+        ) {
+            const lang = languageSelect.value;
+            const dictionary = translations[lang] || translations.en;
+
+            const message =
+                dictionary.phone_change_same_number ||
+                translations.en.phone_change_same_number ||
+                "This phone number is already registered to your account.";
+
+            telegram.showAlert(message);
+            return;
+        }
+
         // Prepare the request
         const payload = {
             id_number: studentId,
@@ -1565,9 +1591,14 @@
 
         try {
             // Prevent duplicate submissions
+            // Prevent duplicate submissions and show processing state
             if (submitButton) {
                 submitButton.disabled = true;
+                submitButton.textContent = 'Sending...';
             }
+
+            successBox.textContent = 'Sending your phone-change request. Please wait.';
+            successBox.style.display = 'block';
 
             const response = await fetch("/api/hemis/phone-change", {
                 method: "POST",
@@ -1580,7 +1611,7 @@
 
             const result = await response.json().catch(() => ({}));
 
-            if (!response.ok) {
+            if (!response.ok || result.ok !== true) {
                 throw new Error(
                     result.detail || result.message || "Failed to submit the request."
                 );
@@ -1596,32 +1627,41 @@
                 translations.en.phone_change_success;
 
             successBox.style.display = "block";
+
+            if (telegram) {
+                telegram.showAlert(successBox.textContent);
+            }
+
             // Clear the form after successful submission
+
             form.reset();
 
-            } catch (error) {
-                console.error("Phone-change request failed:", error);
+        } catch (error) {
+            console.error("Phone-change request failed:", error);
 
-                const lang = languageSelect.value;
-                const dictionary = translations[lang] || translations.en;
+            const lang = languageSelect.value;
+            const dictionary = translations[lang] || translations.en;
 
-                const messageKey = {
-                    "Invalid identification number format.": "phone_change_invalid_id",
-                    "Invalid phone number. Enter 9 digits.": "phone_change_invalid_phone",
-                    "Phone-change group is not configured.": "phone_change_group_not_configured"
-                };
+            const messageKey = {
+                "Invalid identification number format.": "phone_change_invalid_id",
+                "Invalid phone number. Enter 9 digits.": "phone_change_invalid_phone",
+                "Phone-change group is not configured.": "phone_change_group_not_configured"
+            };
 
-                const detail = error.message || "";
-                const key = messageKey[detail] || "phone_change_failed";
+            const detail = error.message || "";
+            const key = messageKey[detail] || "phone_change_failed";
 
-                successBox.textContent =
-                    dictionary[key] || translations.en.phone_change_failed;
+            successBox.textContent =
+                dictionary[key] || translations.en.phone_change_failed;
 
-                successBox.style.display = "block";
-            } finally {
-            // Allow the user to submit again
+            successBox.style.display = "block";
+            if (telegram) {
+                telegram.showAlert(successBox.textContent);
+            }
+        } finally {
             if (submitButton) {
                 submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
             }
         }
     });
