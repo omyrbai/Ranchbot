@@ -237,7 +237,8 @@
     "Failed to save address.": "Failed to save address.",
     "An error occurred while saving.": "An error occurred while saving.",
     "Your saved addresses have been loaded.": "Your saved addresses have been loaded.",
-    "address_service_desc": "Enter and update your residential address information"
+    "address_service_desc": "Enter and update your residential address information",
+    "phone_change_same_number": "This phone number is already linked to your Hemis account. Please enter a different number."
   },
   "kk": {
     "Discrepancy reports can only be submitted at least 4 business days after the payment date.": "Tólem sánesinen keyin keminde 4 jumıs kúni ótkennen soń sáykesizlik haqqında arza jiberiwge boladı.",
@@ -477,7 +478,8 @@
     "Failed to save address.": "Manzildi saqlaw múmkin bolmadı.",
     "An error occurred while saving.": "Saqlaw waqtında qátelik júz berdi.",
     "Your saved addresses have been loaded.": "Siziń saqlanǵan maǵlıwmatlarıńız júklendi.",
-    "address_service_desc": "Jasaw manzilińiz maǵlıwmatların kiritiw hám jańalaw"
+    "address_service_desc": "Jasaw manzilińiz maǵlıwmatların kiritiw hám jańalaw",
+    "phone_change_same_number": "Bul telefon nomer Hemis akkauntıńızǵa aldınnan jalǵanǵan. Iltimas, basqa nomer kiritiń."
   },
   "uz": {
     "Student services": "Talabalar xizmatlari",
@@ -717,6 +719,7 @@
     "Failed to save address.": "Manzilni saqlab bo‘lmadi.",
     "An error occurred while saving.": "Saqlash vaqtida xatolik yuz berdi.",
     "Your saved addresses have been loaded.": "Sizning saqlangan manzil ma'lumotlaringiz yuklandi.",
-    "address_service_desc": "Yashash manzilingiz haqidagi ma’lumotlarni kiritish va yangilash"
+    "address_service_desc": "Yashash manzilingiz haqidagi ma’lumotlarni kiritish va yangilash",
+    "phone_change_same_number": "Ushbu telefon raqam allaqachon Hemis akkauntingizga biriktirilgan. Iltimos, boshqa raqam kiriting."
   }
 }

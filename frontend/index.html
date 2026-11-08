@@ -1566,23 +1566,6 @@
             return;
         }
 
-        // Prevent requesting the already registered phone number
-        if (
-            currentStudentPhone &&
-            normalizePhone(phoneDigits) === currentStudentPhone
-        ) {
-            const lang = languageSelect.value;
-            const dictionary = translations[lang] || translations.en;
-
-            const message =
-                dictionary.phone_change_same_number ||
-                translations.en.phone_change_same_number ||
-                "This phone number is already registered to your account.";
-
-            telegram.showAlert(message);
-            return;
-        }
-
         // Prepare the request
         const payload = {
             id_number: studentId,
@@ -1645,7 +1628,8 @@
             const messageKey = {
                 "Invalid identification number format.": "phone_change_invalid_id",
                 "Invalid phone number. Enter 9 digits.": "phone_change_invalid_phone",
-                "Phone-change group is not configured.": "phone_change_group_not_configured"
+                "Phone-change group is not configured.": "phone_change_group_not_configured",
+                "This phone number is already registered to your Telegram account.": "phone_change_same_number"
             };
 
             const detail = error.message || "";
