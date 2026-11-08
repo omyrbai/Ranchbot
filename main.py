@@ -359,6 +359,118 @@ def is_admin(update: Update) -> bool:
         and user.id == ADMIN_TG_ID
     )
 
+async def get_addresses_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message:
+        return
+
+    # Only the configured admin in a private chat can export addresses.
+    if not is_admin(update):
+        await message.reply_text(
+            "⛔ You are not authorized to access address records."
+        )
+        return
+
+    await message.reply_text("⏳ Preparing the addresses Excel file...")
+
+    try:
+        def generate_addresses_excel():
+            from openpyxl import Workbook
+
+            # Load HEMIS student information.
+            dataset = load_json(GENERATED_DIR / "login.json") or {}
+
+            # Build a lookup using each record's HemisID.
+            students_by_hemis_id = {}
+            for student in dataset.values():
+                if not isinstance(student, dict):
+                    continue
+
+                hemis_id = str(student.get("HemisID", "")).strip().upper()
+                if hemis_id:
+                    students_by_hemis_id[hemis_id] = student
+
+            connection = get_db_connection()
+
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT * FROM addresses ORDER BY address_id"
+                    )
+                    rows = cursor.fetchall()
+                    headers = [column[0] for column in cursor.description]
+
+                workbook = Workbook()
+                worksheet = workbook.active
+                worksheet.title = "Addresses"
+
+                # Keep all original address columns and add only these two.
+                export_headers = headers + [
+                    "student_fullname",
+                    "student_group",
+                ]
+                worksheet.append(export_headers)
+
+                for row in rows:
+                    hemis_id = str(row.get("hemis_id") or "").strip().upper()
+                    student = students_by_hemis_id.get(hemis_id, {})
+
+                    values = [row.get(header) for header in headers]
+                    values.extend([
+                        student.get("Fullname", ""),
+                        student.get("Group", ""),
+                    ])
+
+                    worksheet.append(values)
+
+                worksheet.freeze_panes = "A2"
+                worksheet.auto_filter.ref = worksheet.dimensions
+
+                for column in worksheet.columns:
+                    max_length = max(
+                        (
+                            len(str(cell.value))
+                            if cell.value is not None else 0
+                        )
+                        for cell in column
+                    )
+                    worksheet.column_dimensions[
+                        column[0].column_letter
+                    ].width = min(max_length + 2, 50)
+
+                output = io.BytesIO()
+                workbook.save(output)
+                output.seek(0)
+
+                return output, len(rows)
+
+            finally:
+                connection.close()
+
+        excel_file, record_count = await asyncio.to_thread(
+            generate_addresses_excel
+        )
+
+        await message.reply_document(
+            document=excel_file,
+            filename="addresses.xlsx",
+            caption=(
+                "📍 Address records exported successfully.\n"
+                f"Records: {record_count}"
+            ),
+        )
+
+    except Exception:
+        logger.exception("Could not export addresses to Excel")
+        await message.reply_text(
+            "❌ Failed to generate the addresses Excel file. "
+            "Please check the server logs."
+        )
+
 
 async def upload_hemis_command(
     update: Update,
@@ -736,6 +848,9 @@ async def lifespan(app: FastAPI):
     )
     telegram_app.add_handler(
         CommandHandler("upload_contracts", upload_contracts_command)
+    )
+    telegram_app.add_handler(
+        CommandHandler("get_addresses", get_addresses_command)
     )
     telegram_app.add_handler(
         MessageHandler(filters.Document.ALL, receive_admin_excel)
