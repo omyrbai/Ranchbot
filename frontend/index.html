@@ -623,6 +623,13 @@
     const authGate = document.getElementById('auth-gate');
     const telegram = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     const telegramInitData = telegram ? telegram.initData : '';
+    function showTelegramAlert(message) {
+        if (telegram && typeof telegram.showAlert === 'function') {
+            telegram.showAlert(message);
+        } else {
+            window.alert(message);
+        }
+    }
     function showAuthGate(title, message) {
       document.body.classList.add('auth-denied');
       authGate.innerHTML = '<div style="font-size:38px;margin-bottom:12px">🔐</div><h1></h1><p></p>';
@@ -982,6 +989,7 @@
 
         if (!currentLat || !currentLng) {
             message.textContent = 'Please select your current address on the map.';
+            showTelegramAlert(message.textContent);
             return;
         }
 
@@ -991,6 +999,7 @@
 
             if (!permanentLat || !permanentLng) {
                 message.textContent = 'Please select your permanent address on the map.';
+                showTelegramAlert(message.textContent);
                 return;
             }
         }
@@ -1016,6 +1025,7 @@
 
             if (landlordPhoneDigits.length !== 9) {
                 message.textContent = 'Please enter a valid 9-digit landlord phone number.';
+                showTelegramAlert(message.textContent);
                 landlordPhoneInput.focus();
                 return;
             }
@@ -1043,11 +1053,13 @@
             }
 
             message.textContent = 'Address saved successfully.';
+            showTelegramAlert(message.textContent);
             console.log('Saved address:', data);
 
         } catch (error) {
             console.error('Address save error:', error);
             message.textContent = error.message || 'An error occurred while saving.';
+            showTelegramAlert(message.textContent);
         }
     });
     const screens=[...document.querySelectorAll('.screen')],nav=[...document.querySelectorAll('.nav')];
@@ -1224,6 +1236,7 @@
         if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
             messageBox.textContent =
                 'Enter a valid student ID: two letters followed by seven digits.';
+            showTelegramAlert(messageBox.textContent);
             return;
         }
 
@@ -1231,11 +1244,13 @@
         if (!fullName) {
             messageBox.textContent = 'Please enter your full name.';
             document.getElementById('report-fullname').focus();
+            showTelegramAlert(messageBox.textContent);
             return;
         }
 
         if (!/^\d{14}$/.test(pinfl)) {
             messageBox.textContent = 'PINFL must contain exactly 14 digits.';
+            showTelegramAlert(messageBox.textContent);
             document.getElementById('report-pinfl').focus();
             return;
         }
@@ -1244,6 +1259,7 @@
         if (!details) {
             messageBox.textContent =
                 'Please describe the discrepancy before submitting.';
+            showTelegramAlert(messageBox.textContent);
             document.getElementById('report-details').focus();
             return;
         }
@@ -1268,7 +1284,7 @@
                 'Your report is incomplete. Please attach: ' +
                 missingFiles.join(', ') +
                 '.';
-
+            showTelegramAlert(messageBox.textContent);
             return;
         }
 
@@ -1329,6 +1345,7 @@
             messageBox.textContent =
                 dictionary['Your discrepancy report was submitted successfully.'] ||
                 translations.en['Your discrepancy report was submitted successfully.'];
+            showTelegramAlert(messageBox.textContent);
             form.reset();
 
             // Reset the displayed filenames
@@ -1346,7 +1363,7 @@
 
             messageBox.textContent =
                 error.message || 'An error occurred. Please try again.';
-
+            showTelegramAlert(messageBox.textContent);
         } finally {
             submitButton.disabled = false;
         }
@@ -1367,31 +1384,37 @@
 
         if (!/^[A-Z]{2}\d{7}$/.test(studentId)) {
             messageBox.textContent = 'Enter a valid ID: two letters followed by seven digits.';
+            showTelegramAlert(messageBox.textContent);
             document.getElementById('receipt-student-id').focus();
             return;
         }
         if (!fullName) {
             messageBox.textContent = 'Please enter your full name.';
+            showTelegramAlert(messageBox.textContent);
             document.getElementById('receipt-fullname').focus();
             return;
         }
         if (!/^\d{14}$/.test(pinfl)) {
             messageBox.textContent = 'PINFL must contain exactly 14 digits.';
+            showTelegramAlert(messageBox.textContent);
             document.getElementById('receipt-pinfl').focus();
             return;
         }
         if (!paymentDate) {
             messageBox.textContent = 'Please select the payment date.';
+            showTelegramAlert(messageBox.textContent);
             document.getElementById('receipt-payment-date').focus();
             return;
         }
         if (!paymentAmount || !/^\d+(?:\.\d{1,2})?$/.test(paymentAmount) || !Number.isFinite(Number(paymentAmount)) || Number(paymentAmount) <= 0) {
             messageBox.textContent = 'Please enter a valid payment amount.';
+            showTelegramAlert(messageBox.textContent);
             document.getElementById('receipt-payment-amount').focus();
             return;
         }
         if (!receiptFile) {
             messageBox.textContent = 'Please attach your payment receipt.';
+            showTelegramAlert(messageBox.textContent);
             return;
         }
 
@@ -1424,11 +1447,13 @@
             messageBox.textContent =
                 dictionary['Your payment receipt was submitted successfully.'] ||
                 translations.en['Your payment receipt was submitted successfully.'];
+            showTelegramAlert(messageBox.textContent);
             form.reset();
             document.getElementById('receipt-file-name').textContent = 'Upload the payment receipt (photo/PDF).';
         } catch (error) {
             console.error('Receipt submission failed:', error);
             messageBox.textContent = error.message || 'An error occurred. Please try again.';
+            showTelegramAlert(messageBox.textContent);
         } finally {
             submitButton.disabled = false;
         }
