@@ -399,7 +399,7 @@ async def get_addresses_command(
             try:
                 with connection.cursor() as cursor:
                     cursor.execute(
-                        "SELECT * FROM addresses ORDER BY address_id"
+                        "SELECT * FROM addresses WHERE is_current=1 ORDER BY address_id"
                     )
                     rows = cursor.fetchall()
                     headers = [column[0] for column in cursor.description]
@@ -411,7 +411,6 @@ async def get_addresses_command(
                 # Keep all original address columns and add only these two.
                 # Arrange columns in the required order.
                 export_headers = [
-                    "address_id",
                     "student_group",
                     "hemis_id",
                     "student_fullname",
@@ -443,7 +442,6 @@ async def get_addresses_command(
                         google_maps_link = ""
 
                     values = {
-                        "address_id": row.get("address_id"),
                         "student_group": student.get("Group", ""),
                         "hemis_id": hemis_id,
                         "student_fullname": student.get("Fullname", ""),
