@@ -831,15 +831,13 @@
                     map.removeLayer(oldMarker);
                 }
 
-                const marker = L.marker([lat, lng]).addTo(map);
+                if (type === 'permanent') {
+                    const marker = L.marker([lat, lng]).addTo(map);
 
-                if (type === 'current') {
-                    currentMarker = marker;
-                } else {
                     permanentMarker = marker;
-                }
 
-                map.setView([lat, lng], 16);
+                    map.setView([lat, lng], 16);
+                }
 
                 document.getElementById(`${type}-address-result`).textContent =
                     'Saved address loaded.';
@@ -1107,40 +1105,8 @@
     consentAccept.addEventListener('click', () => {
         if (!consentCheckbox.checked) return;
 
-        const locationManager = telegram?.LocationManager;
-
-        if (!locationManager) {
-            telegram.showAlert('Location access is not supported in this Telegram version. Please update Telegram.');
-            return;
-        }
-
-        locationManager.init(() => {
-            if (!locationManager.isLocationAvailable) {
-                addressConsentGranted = true;
-                show('address');
-
-                document.getElementById('current-address-result').textContent =
-                    'GPS is unavailable. Please select your location manually on the map.';
-
-                return;
-            }
-
-            locationManager.getLocation((location) => {
-                if (!location) {
-                    telegram.showAlert('Location permission was not granted. Please allow location access to continue.');
-                    return;
-                }
-
-                addressConsentGranted = true;
-                show('address');
-
-                selectAddressLocation(
-                    'current',
-                    location.latitude,
-                    location.longitude
-                );
-            });
-        });
+        addressConsentGranted = true;
+        show('address');
     });
 
     document.getElementById('address-consent-decline')
