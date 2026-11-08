@@ -436,7 +436,7 @@
                                                                                   placeholder="99 999 99 99"
                                                                                   required type="tel"></div>
             <div class="note">Enter the remaining 9 digits. The country code +998 is already included.</div>
-            <button class="primary">Send request</button>
+            <button class="primary" type="submit">Send request</button>
             <div class="success" id="phone-success" role="status">Your request to change the phone number has been made.
                 The responsible administrator will review it.
             </div>
@@ -1550,6 +1550,13 @@
         const successBox = document.getElementById("phone-success");
         const submitButton = form.querySelector('button[type="submit"]');
         const originalButtonText = submitButton.textContent;
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton?.textContent || "Send request";
+
+        console.log("PHONE FORM SUBMITTED");
+        console.log("Submit button found:", !!submitButton);
+        console.log("Student ID:", studentId);
+        console.log("Phone digits length:", phoneDigits.length);
         // Hide the previous result
         successBox.textContent = "";
         successBox.style.display = "none";
@@ -1582,7 +1589,9 @@
 
             successBox.textContent = 'Sending your phone-change request. Please wait.';
             successBox.style.display = 'block';
-
+            console.log("Sending request to /api/hemis/phone-change");
+            console.log("Payload:", payload);
+            console.log("Telegram initData available:", !!telegramInitData);
             const response = await fetch("/api/hemis/phone-change", {
                 method: "POST",
                 headers: {
