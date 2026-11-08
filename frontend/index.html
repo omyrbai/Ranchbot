@@ -1625,23 +1625,36 @@
             const lang = languageSelect.value;
             const dictionary = translations[lang] || translations.en;
 
-            const messageKey = {
-                "Invalid identification number format.": "phone_change_invalid_id",
-                "Invalid phone number. Enter 9 digits.": "phone_change_invalid_phone",
-                "Phone-change group is not configured.": "phone_change_group_not_configured",
-                "This phone number is already registered to your Telegram account.": "phone_change_same_number"
-            };
-
             const detail = error.message || "";
-            const key = messageKey[detail] || "phone_change_failed";
 
-            successBox.textContent =
-                dictionary[key] || translations.en.phone_change_failed;
+            let key = "phone_change_failed";
 
-            successBox.style.display = "block";
-            if (telegram) {
-                telegram.showAlert(successBox.textContent);
+            if (detail.includes("already registered")) {
+                key = "phone_change_same_number";
+            } else if (detail.includes("Invalid identification number")) {
+                key = "phone_change_invalid_id";
+            } else if (detail.includes("Invalid phone number")) {
+                key = "phone_change_invalid_phone";
+            } else if (detail.includes("group is not configured")) {
+                key = "phone_change_group_not_configured";
             }
+
+            const message =
+                dictionary[key] ||
+                translations.en[key] ||
+                "Unable to submit your request. Please try again.";
+
+            // Display the error in the form
+            successBox.textContent = message;
+            successBox.style.display = "block";
+
+            // Show a popup in Telegram, or a browser alert outside Telegram
+            if (telegram && typeof telegram.showAlert === "function") {
+                telegram.showAlert(message);
+            } else {
+                window.alert(message);
+            }
+
         } finally {
             if (submitButton) {
                 submitButton.disabled = false;
