@@ -409,23 +409,70 @@ async def get_addresses_command(
                 worksheet.title = "Addresses"
 
                 # Keep all original address columns and add only these two.
-                export_headers = headers + [
-                    "student_fullname",
+                # Arrange columns in the required order.
+                export_headers = [
+                    "address_id",
                     "student_group",
+                    "hemis_id",
+                    "student_fullname",
                 ]
+
+                # Add the remaining database columns, preserving their original order.
+                for header in headers:
+                    if header not in export_headers and header != "longitude":
+                        export_headers.append(header)
+
+                    if header == "longitude":
+                        export_headers.append("longitude")
+                        export_headers.append("google_maps_link")
+
                 worksheet.append(export_headers)
 
                 for row in rows:
                     hemis_id = str(row.get("hemis_id") or "").strip().upper()
                     student = students_by_hemis_id.get(hemis_id, {})
 
-                    values = [row.get(header) for header in headers]
-                    values.extend([
-                        student.get("Fullname", ""),
-                        student.get("Group", ""),
+                    latitude = row.get("latitude")
+                    longitude = row.get("longitude")
+
+                    if latitude is not None and longitude is not None:
+                        google_maps_link = (
+                            f"https://www.google.com/maps?q={latitude},{longitude}"
+                        )
+                    else:
+                        google_maps_link = ""
+
+                    values = {
+                        "address_id": row.get("address_id"),
+                        "student_group": student.get("Group", ""),
+                        "hemis_id": hemis_id,
+                        "student_fullname": student.get("Fullname", ""),
+                    }
+
+                    # Add all remaining address fields.
+                    for header in headers:
+                        if header not in values:
+                            values[header] = row.get(header)
+
+                    # Add the Google Maps link immediately after longitude.
+                    values["google_maps_link"] = google_maps_link
+
+                    worksheet.append([
+                        values.get(header, "")
+                        for header in export_headers
                     ])
 
-                    worksheet.append(values)
+                    # Make the Google Maps link clickable in Excel.
+                    maps_column = export_headers.index("google_maps_link") + 1
+                    maps_cell = worksheet.cell(
+                        row=worksheet.max_row,
+                        column=maps_column,
+                    )
+
+                    if google_maps_link:
+                        maps_cell.value = "Open in Google Maps"
+                        maps_cell.hyperlink = google_maps_link
+                        maps_cell.style = "Hyperlink"
 
                 worksheet.freeze_panes = "A2"
                 worksheet.auto_filter.ref = worksheet.dimensions
