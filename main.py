@@ -470,7 +470,7 @@ async def get_addresses_command(
                     )
 
                     if google_maps_link:
-                        maps_cell.value = "Open in Google Maps"
+                        maps_cell.value = google_maps_link
                         maps_cell.hyperlink = google_maps_link
                         maps_cell.style = "Hyperlink"
 
