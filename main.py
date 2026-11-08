@@ -288,6 +288,14 @@ def get_registered_user(tgid: int):
 
 
 def register_user(tgid: int, phone: str):
+    phone = phone.strip()
+
+    # Normalize Uzbek phone numbers to +998XXXXXXXXX.
+    digits = re.sub(r"\D", "", phone)
+
+    if digits.startswith("998") and len(digits) == 12:
+        phone = f"+{digits}"
+
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
