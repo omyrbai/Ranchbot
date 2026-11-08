@@ -831,13 +831,15 @@
                     map.removeLayer(oldMarker);
                 }
 
-                if (type === 'permanent') {
-                    const marker = L.marker([lat, lng]).addTo(map);
+                const marker = L.marker([lat, lng]).addTo(map);
 
+                if (type === 'current') {
+                    currentMarker = marker;
+                } else {
                     permanentMarker = marker;
-
-                    map.setView([lat, lng], 16);
                 }
+
+                map.setView([lat, lng], 16);
 
                 document.getElementById(`${type}-address-result`).textContent =
                     'Saved address loaded.';
