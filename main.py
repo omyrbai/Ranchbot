@@ -449,6 +449,21 @@ async def get_addresses_command(
 
                     if role in ("CURRENT", "PERMANENT"):
                         students[hemis_id][role] = row
+                # Calculate export statistics.
+                student_count = len(students_by_hemis_id)
+
+                confirmed_count = sum(
+                    1
+                    for student in students_by_hemis_id.values()
+                    if normalize_phone(student.get("Phone", ""))
+                    and normalize_phone(student.get("Phone", "")) in registered_phones
+                )
+
+                address_entered_count = sum(
+                    1
+                    for hemis_id in students_by_hemis_id
+                    if hemis_id in students
+                )
 
                 workbook = Workbook()
                 worksheet = workbook.active
@@ -586,14 +601,22 @@ async def get_addresses_command(
                 workbook.save(output)
                 output.seek(0)
 
-                return output, len(students_by_hemis_id)
+                return (
+                    output,
+                    student_count,
+                    confirmed_count,
+                    address_entered_count,
+                )
 
             finally:
                 connection.close()
 
-        excel_file, record_count = await asyncio.to_thread(
-            generate_addresses_excel
-        )
+        (
+            excel_file,
+            student_count,
+            confirmed_count,
+            address_entered_count,
+        ) = await asyncio.to_thread(generate_addresses_excel)
 
         await message.reply_document(
             document=excel_file,
@@ -601,6 +624,11 @@ async def get_addresses_command(
             caption=(
                 "📍 Addresses"
             ),
+        )
+        await message.reply_text(
+            f"Student sani: {student_count}\n"
+            f"Tastiyiqlanganlar sani: {confirmed_count}\n"
+            f"Manzilin kiritkenler sani: {address_entered_count}"
         )
 
     except Exception:
