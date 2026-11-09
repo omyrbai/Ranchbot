@@ -466,6 +466,7 @@ async def get_addresses_command(
                 address_fields = [
                     header for header in address_headers
                     if header not in {
+                        "address_id",
                         "hemis_id",
                         "address_role",
                         "is_current",
@@ -486,9 +487,17 @@ async def get_addresses_command(
                 worksheet.append(export_headers)
 
                 # One Excel row per student.
-                for hemis_id, addresses in students.items():
-                    student = students_by_hemis_id.get(hemis_id, {})
+                # One Excel row for EVERY student in the HEMIS dataset.
+                for hemis_id, student in students_by_hemis_id.items():
 
+                    # Get addresses if available; otherwise use empty records.
+                    addresses = students.get(
+                        hemis_id,
+                        {
+                            "CURRENT": {},
+                            "PERMANENT": {},
+                        }
+                    )
                     student_phone = student.get("Phone", "")
 
                     status = (
@@ -575,7 +584,7 @@ async def get_addresses_command(
                 workbook.save(output)
                 output.seek(0)
 
-                return output, len(students)
+                return output, len(students_by_hemis_id)
 
             finally:
                 connection.close()
