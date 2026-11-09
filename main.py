@@ -359,6 +359,7 @@ def is_admin(update: Update) -> bool:
         and user.id == ADMIN_TG_ID
     )
 
+
 async def get_addresses_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -368,7 +369,6 @@ async def get_addresses_command(
     if not message:
         return
 
-    # Only the configured admin in a private chat can export addresses.
     if not is_admin(update):
         await message.reply_text(
             "⛔ You are not authorized to access address records."
@@ -384,7 +384,6 @@ async def get_addresses_command(
             # Load HEMIS student information.
             dataset = load_json(GENERATED_DIR / "login.json") or {}
 
-            # Build a lookup using each record's HemisID.
             students_by_hemis_id = {}
             for student in dataset.values():
                 if not isinstance(student, dict):
@@ -394,83 +393,167 @@ async def get_addresses_command(
                 if hemis_id:
                     students_by_hemis_id[hemis_id] = student
 
+            # Normalize Uzbek phone numbers for comparison.
+            def normalize_phone(value):
+                digits = re.sub(r"\D", "", str(value or ""))
+                return digits[-9:] if len(digits) >= 9 else digits
+
             connection = get_db_connection()
 
             try:
                 with connection.cursor() as cursor:
+                    # Get registered phone numbers from the existing users table.
                     cursor.execute(
-                        "SELECT * FROM addresses WHERE is_current=1 ORDER BY address_id"
+                        """
+                        SELECT phone
+                        FROM users
+                        WHERE phone IS NOT NULL AND phone <> ''
+                        """
                     )
-                    rows = cursor.fetchall()
-                    headers = [column[0] for column in cursor.description]
+                    registered_phones = {
+                        normalize_phone(row["phone"])
+                        for row in cursor.fetchall()
+                        if normalize_phone(row["phone"])
+                    }
+
+                    # Get only active address records.
+                    cursor.execute(
+                        """
+                        SELECT *
+                        FROM addresses
+                        WHERE is_current = 1
+                        ORDER BY hemis_id, address_role, address_id
+                        """
+                    )
+                    address_rows = cursor.fetchall()
+                    address_headers = [
+                        column[0] for column in cursor.description
+                    ]
+
+                # Group current and permanent addresses by student.
+                students = {}
+
+                for row in address_rows:
+                    hemis_id = str(row.get("hemis_id") or "").strip().upper()
+
+                    if not hemis_id:
+                        continue
+
+                    if hemis_id not in students:
+                        students[hemis_id] = {
+                            "CURRENT": {},
+                            "PERMANENT": {},
+                        }
+
+                    role = str(row.get("address_role") or "").upper()
+
+                    if role in ("CURRENT", "PERMANENT"):
+                        students[hemis_id][role] = row
 
                 workbook = Workbook()
                 worksheet = workbook.active
                 worksheet.title = "Addresses"
 
-                # Keep all original address columns and add only these two.
-                # Arrange columns in the required order.
+                # Build the Excel column order.
                 export_headers = [
+                    "status",
                     "student_group",
                     "hemis_id",
                     "student_fullname",
+                    "student_phone",
                 ]
 
-                # Add the remaining database columns, preserving their original order.
-                for header in headers:
-                    if header not in export_headers and header != "longitude":
-                        export_headers.append(header)
+                address_fields = [
+                    header for header in address_headers
+                    if header not in {
+                        "hemis_id",
+                        "address_role",
+                        "is_current",
+                    }
+                ]
 
-                    if header == "longitude":
-                        export_headers.append("longitude")
-                        export_headers.append("google_maps_link")
+                for role in ("CURRENT", "PERMANENT"):
+                    prefix = role.lower()
+
+                    for field in address_fields:
+                        export_headers.append(f"{prefix}_{field}")
+
+                        if field == "longitude":
+                            export_headers.append(
+                                f"{prefix}_google_maps_link"
+                            )
 
                 worksheet.append(export_headers)
 
-                for row in rows:
-                    hemis_id = str(row.get("hemis_id") or "").strip().upper()
+                # One Excel row per student.
+                for hemis_id, addresses in students.items():
                     student = students_by_hemis_id.get(hemis_id, {})
 
-                    latitude = row.get("latitude")
-                    longitude = row.get("longitude")
+                    student_phone = student.get("Phone", "")
 
-                    if latitude is not None and longitude is not None:
-                        google_maps_link = (
-                            f"https://www.google.com/maps?q={latitude},{longitude}"
-                        )
-                    else:
-                        google_maps_link = ""
+                    status = (
+                        "confirmed"
+                        if normalize_phone(student_phone) in registered_phones
+                        and normalize_phone(student_phone)
+                        else "not_confirmed"
+                    )
 
                     values = {
+                        "status": status,
                         "student_group": student.get("Group", ""),
                         "hemis_id": hemis_id,
                         "student_fullname": student.get("Fullname", ""),
+                        "student_phone": student_phone,
                     }
 
-                    # Add all remaining address fields.
-                    for header in headers:
-                        if header not in values:
-                            values[header] = row.get(header)
+                    for role in ("CURRENT", "PERMANENT"):
+                        prefix = role.lower()
+                        address = addresses[role]
 
-                    # Add the Google Maps link immediately after longitude.
-                    values["google_maps_link"] = google_maps_link
+                        for field in address_fields:
+                            values[f"{prefix}_{field}"] = (
+                                address.get(field, "") if address else ""
+                            )
+
+                            if field == "longitude":
+                                latitude = (
+                                    address.get("latitude") if address else None
+                                )
+                                longitude = (
+                                    address.get("longitude") if address else None
+                                )
+
+                                maps_link = ""
+                                if latitude is not None and longitude is not None:
+                                    maps_link = (
+                                        f"https://www.google.com/maps"
+                                        f"?q={latitude},{longitude}"
+                                    )
+
+                                values[f"{prefix}_google_maps_link"] = maps_link
 
                     worksheet.append([
                         values.get(header, "")
                         for header in export_headers
                     ])
 
-                    # Make the Google Maps link clickable in Excel.
-                    maps_column = export_headers.index("google_maps_link") + 1
-                    maps_cell = worksheet.cell(
-                        row=worksheet.max_row,
-                        column=maps_column,
-                    )
+                    # Make both map links clickable.
+                    current_row = worksheet.max_row
 
-                    if google_maps_link:
-                        maps_cell.value = google_maps_link
-                        maps_cell.hyperlink = google_maps_link
-                        maps_cell.style = "Hyperlink"
+                    for role in ("current", "permanent"):
+                        link_header = f"{role}_google_maps_link"
+                        if link_header not in export_headers:
+                            continue
+
+                        column_number = export_headers.index(link_header) + 1
+                        cell = worksheet.cell(
+                            row=current_row,
+                            column=column_number,
+                        )
+
+                        if cell.value:
+                            cell.hyperlink = cell.value
+                            cell.style = "Hyperlink"
 
                 worksheet.freeze_panes = "A2"
                 worksheet.auto_filter.ref = worksheet.dimensions
@@ -483,6 +566,7 @@ async def get_addresses_command(
                         )
                         for cell in column
                     )
+
                     worksheet.column_dimensions[
                         column[0].column_letter
                     ].width = min(max_length + 2, 50)
@@ -491,7 +575,7 @@ async def get_addresses_command(
                 workbook.save(output)
                 output.seek(0)
 
-                return output, len(rows)
+                return output, len(students)
 
             finally:
                 connection.close()
@@ -505,7 +589,7 @@ async def get_addresses_command(
             filename="addresses.xlsx",
             caption=(
                 "📍 Address records exported successfully.\n"
-                f"Records: {record_count}"
+                f"Students: {record_count}"
             ),
         )
 
@@ -515,7 +599,6 @@ async def get_addresses_command(
             "❌ Failed to generate the addresses Excel file. "
             "Please check the server logs."
         )
-
 
 async def upload_hemis_command(
     update: Update,
