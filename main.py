@@ -597,8 +597,7 @@ async def get_addresses_command(
             document=excel_file,
             filename="addresses.xlsx",
             caption=(
-                "📍 Address records exported successfully.\n"
-                f"Students: {record_count}"
+                "📍 Addresses"
             ),
         )
 
