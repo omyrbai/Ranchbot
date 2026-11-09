@@ -458,6 +458,7 @@ async def get_addresses_command(
                 export_headers = [
                     "status",
                     "student_group",
+                    "tutor_name",
                     "hemis_id",
                     "student_fullname",
                     "student_phone",
@@ -510,6 +511,7 @@ async def get_addresses_command(
                     values = {
                         "status": status,
                         "student_group": student.get("Group", ""),
+                        "tutor_name": student.get("Tutor", ""),
                         "hemis_id": hemis_id,
                         "student_fullname": student.get("Fullname", ""),
                         "student_phone": student_phone,
