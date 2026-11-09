@@ -638,6 +638,203 @@ async def get_addresses_command(
             "Please check the server logs."
         )
 
+
+async def get_address_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message:
+        return
+
+    if not is_admin(update):
+        await message.reply_text(
+            "⛔ You are not authorized to access address records."
+        )
+        return
+
+    await message.reply_text("⏳ Preparing the address records Excel file...")
+
+    try:
+        def generate_address_excel():
+            from openpyxl import Workbook
+
+            # Load HEMIS student information.
+            dataset = load_json(GENERATED_DIR / "login.json") or {}
+
+            students_by_hemis_id = {}
+
+            for student in dataset.values():
+                if not isinstance(student, dict):
+                    continue
+
+                hemis_id = str(
+                    student.get("HemisID", "")
+                ).strip().upper()
+
+                if hemis_id:
+                    students_by_hemis_id[hemis_id] = student
+
+            connection = get_db_connection()
+
+            try:
+                with connection.cursor() as cursor:
+                    # Select every active address record.
+                    cursor.execute(
+                        """
+                        SELECT *
+                        FROM addresses
+                        WHERE is_current = 1
+                        ORDER BY hemis_id, address_role, address_id
+                        """
+                    )
+
+                    address_rows = cursor.fetchall()
+
+                    address_headers = [
+                        column[0]
+                        for column in cursor.description
+                    ]
+
+                workbook = Workbook()
+                worksheet = workbook.active
+                worksheet.title = "Address Records"
+
+                # Student information comes first.
+                export_headers = [
+                    "student_group",
+                    "student_fullname",
+                    "hemis_id",
+                ]
+
+                # Include all address columns except address_id
+                # and the duplicate hemis_id.
+                address_fields = [
+                    header
+                    for header in address_headers
+                    if header not in {"address_id", "hemis_id"}
+                ]
+
+                export_headers.extend(address_fields)
+
+                # Add Google Maps link after longitude.
+                if "longitude" in address_fields:
+                    longitude_index = (
+                        export_headers.index("longitude") + 1
+                    )
+                    export_headers.insert(
+                        longitude_index,
+                        "google_maps_link",
+                    )
+
+                worksheet.append(export_headers)
+
+                # LEFT JOIN equivalent:
+                # Keep every address record, even if no HEMIS
+                # student record matches its hemis_id.
+                for address in address_rows:
+                    hemis_id = str(
+                        address.get("hemis_id") or ""
+                    ).strip().upper()
+
+                    student = students_by_hemis_id.get(
+                        hemis_id, {}
+                    )
+
+                    values = {
+                        "student_group": student.get("Group", ""),
+                        "student_fullname": student.get("Fullname", ""),
+                        "hemis_id": hemis_id,
+                    }
+
+                    # Copy address information.
+                    for field in address_fields:
+                        values[field] = address.get(field, "")
+
+                    # Build Google Maps link.
+                    latitude = address.get("latitude")
+                    longitude = address.get("longitude")
+
+                    maps_link = ""
+
+                    if latitude is not None and longitude is not None:
+                        maps_link = (
+                            f"https://www.google.com/maps"
+                            f"?q={latitude},{longitude}"
+                        )
+
+                    if "google_maps_link" in export_headers:
+                        values["google_maps_link"] = maps_link
+
+                    worksheet.append([
+                        values.get(header, "")
+                        for header in export_headers
+                    ])
+
+                    # Make Google Maps link clickable.
+                    if "google_maps_link" in export_headers:
+                        link_column = (
+                            export_headers.index("google_maps_link") + 1
+                        )
+
+                        cell = worksheet.cell(
+                            row=worksheet.max_row,
+                            column=link_column,
+                        )
+
+                        if cell.value:
+                            cell.hyperlink = cell.value
+                            cell.style = "Hyperlink"
+
+                worksheet.freeze_panes = "A2"
+                worksheet.auto_filter.ref = worksheet.dimensions
+
+                for column in worksheet.columns:
+                    max_length = max(
+                        (
+                            len(str(cell.value))
+                            if cell.value is not None else 0
+                        )
+                        for cell in column
+                    )
+
+                    worksheet.column_dimensions[
+                        column[0].column_letter
+                    ].width = min(max_length + 2, 50)
+
+                output = io.BytesIO()
+                workbook.save(output)
+                output.seek(0)
+
+                return output, len(address_rows)
+
+            finally:
+                connection.close()
+
+        excel_file, record_count = await asyncio.to_thread(
+            generate_address_excel
+        )
+
+        await message.reply_document(
+            document=excel_file,
+            filename="address_records.xlsx",
+            caption="📍 Active address records",
+        )
+
+        await message.reply_text(
+            f"📊 Active address records exported: {record_count}"
+        )
+
+    except Exception:
+        logger.exception("Could not export address records to Excel")
+
+        await message.reply_text(
+            "❌ Failed to generate the address records Excel file. "
+            "Please check the server logs."
+        )
+
+
 async def upload_hemis_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -1017,6 +1214,9 @@ async def lifespan(app: FastAPI):
     )
     telegram_app.add_handler(
         CommandHandler("get_addresses", get_addresses_command)
+    )
+    telegram_app.add_handler(
+        CommandHandler("get_address", get_address_command)
     )
     telegram_app.add_handler(
         MessageHandler(filters.Document.ALL, receive_admin_excel)
