@@ -98,10 +98,37 @@ logging.basicConfig(
 logger = logging.getLogger("ranchbot")
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-NOMINATIM_USER_AGENT = "Ranchbot/1.0 (contact: YOUR_EMAIL)"
+NOMINATIM_USER_AGENT = "Ranchbot/1.0 (contact: aydaxo@bk.ru)"
 
 _nominatim_lock = Lock()
 _last_nominatim_request = 0.0
+
+address_lookup_queue: asyncio.Queue | None = None
+address_lookup_worker_task: asyncio.Task | None = None
+
+
+async def address_lookup_worker():
+    while True:
+        latitude, longitude, future = await address_lookup_queue.get()
+
+        try:
+            if future.cancelled():
+                continue
+            result = await asyncio.to_thread(
+                get_full_address,
+                latitude,
+                longitude,
+            )
+
+            if not future.done():
+                future.set_result(result)
+
+        except Exception as exc:
+            if not future.done():
+                future.set_exception(exc)
+
+        finally:
+            address_lookup_queue.task_done()
 
 
 def get_full_address(latitude: float, longitude: float) -> dict:
@@ -938,7 +965,7 @@ async def receive_admin_excel(
             destination = GENERATED_DIR / "login.json"
             # Clear the previous HEMIS JSON before rebuilding from this in-memory upload.
             # The Excel workbook is never saved to the server.
-            destination.unlink(missing_ok=True)
+
             dataset = await asyncio.to_thread(parse_credentials, content)
             dataset_name = "HEMIS student data"
 
@@ -1188,7 +1215,7 @@ telegram_app = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global telegram_app
+    global telegram_app, address_lookup_queue, address_lookup_worker_task
     await asyncio.to_thread(initialize_database)
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN is missing. Set it in .env before starting the bot.")
@@ -1234,6 +1261,11 @@ async def lifespan(app: FastAPI):
     await telegram_app.updater.start_polling()
     logger.info("Telegram bot polling started")
     logger.info("Bot web server started")
+    address_lookup_queue = asyncio.Queue(maxsize=100)
+    address_lookup_worker_task = asyncio.create_task(
+        address_lookup_worker()
+    )
+
     try:
         yield
     finally:
@@ -1243,6 +1275,15 @@ async def lifespan(app: FastAPI):
             await telegram_app.stop()
         await telegram_app.shutdown()
         logger.info("Bot stopped")
+        if address_lookup_worker_task:
+            address_lookup_worker_task.cancel()
+            await asyncio.gather(
+                address_lookup_worker_task,
+                return_exceptions=True,
+            )
+
+        address_lookup_worker_task = None
+        address_lookup_queue = None
 
 
 app = FastAPI(
@@ -1358,17 +1399,40 @@ def get_my_student_profile(
 
 
 @app.post("/api/address/lookup")
-def lookup_address(
+async def lookup_address(
     request: AddressLocationRequest,
     current_user: dict = Depends(require_registered_telegram_user)
 ):
-    result = get_full_address(
-        request.latitude,
-        request.longitude
-    )
+    if address_lookup_queue is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Address lookup service is unavailable.",
+        )
 
-    return result
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
 
+    try:
+        address_lookup_queue.put_nowait((
+            request.latitude,
+            request.longitude,
+            future,
+        ))
+
+    except asyncio.QueueFull:
+        raise HTTPException(
+            status_code=503,
+            detail="Address lookup queue is currently full. Please try again shortly.",
+        )
+
+    try:
+        return await asyncio.wait_for(future, timeout=180)
+
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="Address lookup took too long. Please try again.",
+        )
 
 @app.get("/api/address/me")
 def get_my_addresses(
@@ -1474,18 +1538,28 @@ def save_my_addresses(
                 status_code=422,
                 detail="Landlord's phone number must use the format +998991231212."
             )
-    current_full_address = get_full_address(
-        request.current_address.latitude,
-        request.current_address.longitude
-    )["full_address"]
+    current_full_address = (
+            request.current_address.full_address or ""
+    ).strip()
+
+    if not current_full_address:
+        raise HTTPException(
+            status_code=422,
+            detail="Please provide your current address."
+        )
 
     permanent_full_address = None
 
     if request.permanent_address:
-        permanent_full_address = get_full_address(
-            request.permanent_address.latitude,
-            request.permanent_address.longitude
-        )["full_address"]
+        permanent_full_address = (
+                request.permanent_address.full_address or ""
+        ).strip()
+
+        if not permanent_full_address:
+            raise HTTPException(
+                status_code=422,
+                detail="Please provide your permanent address."
+            )
 
     connection = get_db_connection()
 
@@ -1613,7 +1687,7 @@ async def upload_hemis(file: UploadFile = File(...), x_admin_token: str | None =
     destination = GENERATED_DIR / "login.json"
     # Clear the previous HEMIS JSON before rebuilding from this in-memory upload.
     # The uploaded Excel file is never saved to disk.
-    destination.unlink(missing_ok=True)
+
     try:
         dataset = parse_credentials(content)
     except WorkbookValidationError as exc:
@@ -1741,25 +1815,6 @@ async def submit_discrepancy_report(
             status_code=400,
             detail=(
                 "Discrepancy reports can only be submitted at least 4 business days after the payment date."
-            ),
-        )
-
-    # Count elapsed business days, excluding Saturdays and Sundays.
-    business_days_elapsed = 0
-    current_date = receipt_date
-
-    while current_date < today:
-        current_date += timedelta(days=1)
-
-        if current_date.weekday() < 5:
-            business_days_elapsed += 1
-
-    if business_days_elapsed < 4:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Discrepancy reports can only be submitted "
-                "at least 4 business days after the payment date."
             ),
         )
 
@@ -1899,7 +1954,7 @@ async def submit_contract_receipt(
     current_user: dict = Depends(require_registered_telegram_user),
 ):
     """Receive a payment receipt and send it to the existing discrepancy Telegram topic."""
-    if GROUP_TGID == 0 or DISCR_TOPIC_ID <= 0:
+    if GROUP_TGID == 0 or RECEIPT_TOPIC_ID <= 0:
         raise HTTPException(
             status_code=500,
             detail="The contract receipt Telegram topic is not configured.",

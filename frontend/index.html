@@ -97,6 +97,59 @@
             border-color: var(--blue);
             box-shadow: 0 0 0 3px var(--blue-soft);
         }
+
+        /* Address lookup waiting overlay */
+        .lookup-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(20, 29, 46, 0.48);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .lookup-overlay[hidden] {
+            display: none !important;
+        }
+
+        .lookup-dialog {
+            width: min(100%, 300px);
+            padding: 28px 22px;
+            border-radius: 20px;
+            background: #fff;
+            text-align: center;
+            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.2);
+        }
+
+        .lookup-spinner {
+            width: 46px;
+            height: 46px;
+            margin: 0 auto 18px;
+            border: 4px solid #e5ebf7;
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: lookup-spin 0.8s linear infinite;
+        }
+
+        .lookup-dialog strong {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .lookup-dialog p {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        @keyframes lookup-spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
     <link
             rel="stylesheet"
@@ -350,6 +403,27 @@
             </div>
 
         </form>
+        <div
+            id="address-lookup-overlay"
+            class="lookup-overlay"
+            hidden
+            role="dialog"
+            aria-modal="true"
+            aria-live="polite"
+            aria-hidden="true"
+        >
+            <div class="lookup-dialog">
+                <div class="lookup-spinner"></div>
+
+                <strong data-i18n="Finding the address">
+                    Finding the address
+                </strong>
+
+                <p data-i18n="Please wait while we identify the selected location. Keep this screen open.">
+                    Please wait while we identify the selected location. Keep this screen open.
+                </p>
+            </div>
+        </div>
     </section>
 
     <section class="screen" id="profile">
@@ -757,6 +831,11 @@
 
     let currentAddressSelectionVersion = 0;
 
+    let addressLookupInProgress = false;
+    const addressLookupVersions = {
+        current: 0,
+        permanent: 0
+    };
     function initAddressMaps() {
         if (typeof L === 'undefined') {
             console.error('Leaflet library is not loaded.');
@@ -878,11 +957,28 @@
             message.textContent = error.message || 'Could not load saved addresses.';
         }
     }
+    function setAddressLookupOverlay(visible) {
+        const overlay = document.getElementById('address-lookup-overlay');
+
+        overlay.hidden = !visible;
+        overlay.setAttribute('aria-hidden', String(!visible));
+
+        addressLookupInProgress = visible;
+    }
+
+
     function selectAddressLocation(type, lat, lng) {
+        // Do not allow another selection while a lookup is running.
+        if (addressLookupInProgress) {
+            return;
+        }
+
         const isCurrent = type === 'current';
+
         if (isCurrent) {
             currentAddressSelectionVersion++;
         }
+
         const map = isCurrent ? currentMap : permanentMap;
         const marker = isCurrent ? currentMarker : permanentMarker;
 
@@ -901,15 +997,20 @@
         document.getElementById(`${type}-latitude`).value = lat;
         document.getElementById(`${type}-longitude`).value = lng;
 
-        lookupSelectedAddress(type, lat, lng);
-
         map.setView([lat, lng], 16);
+
+        lookupSelectedAddress(type, lat, lng);
     }
+
 
     async function lookupSelectedAddress(type, lat, lng) {
         const result = document.getElementById(`${type}-address-result`);
+        const addressInput = document.getElementById(`${type}-full-address`);
+
+        const requestVersion = ++addressLookupVersions[type];
 
         result.textContent = 'Looking up address...';
+        setAddressLookupOverlay(true);
 
         try {
             const response = await fetch('/api/address/lookup', {
@@ -928,16 +1029,31 @@
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.detail || 'Address lookup failed.');
+                throw new Error(
+                    data.detail || 'Address lookup failed.'
+                );
             }
 
+            // Ignore an outdated response.
+            if (requestVersion !== addressLookupVersions[type]) {
+                return;
+            }
+
+            addressInput.value = data.full_address || '';
+
             result.textContent = 'Address found. You can edit it below.';
-            document.getElementById(`${type}-full-address`).value =
-                data.full_address || '';
 
         } catch (error) {
-            result.textContent = error.message;
+            if (requestVersion === addressLookupVersions[type]) {
+                result.textContent = error.message;
+            }
+
             console.error('Address lookup error:', error);
+
+        } finally {
+            if (requestVersion === addressLookupVersions[type]) {
+                setAddressLookupOverlay(false);
+            }
         }
     }
     function getCurrentLocation(type) {

@@ -554,11 +554,14 @@ telegram_app = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global telegram_app
+    global telegram_app, address_lookup_queue, address_lookup_worker_task
     await asyncio.to_thread(initialize_database)
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN is missing. Set it in .env before starting the bot.")
-
+    address_lookup_queue = asyncio.Queue(maxsize=100)
+    address_lookup_worker_task = asyncio.create_task(
+        address_lookup_worker()
+    )
 
     telegram_app = Application.builder().token(BOT_TOKEN).build()
 
@@ -598,6 +601,16 @@ async def lifespan(app: FastAPI):
             await telegram_app.stop()
         await telegram_app.shutdown()
         logger.info("Bot stopped")
+        if address_lookup_worker_task:
+            address_lookup_worker_task.cancel()
+
+            await asyncio.gather(
+                address_lookup_worker_task,
+                return_exceptions=True,
+            )
+
+        address_lookup_worker_task = None
+        address_lookup_queue = None
 
 
 app = FastAPI(
