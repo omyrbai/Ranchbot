@@ -343,7 +343,7 @@ def register_user(tgid: int, phone: str):
 
 def registration_keyboard():
     return ReplyKeyboardMarkup(
-        [[KeyboardButton("📱 Share my phone number", request_contact=True)]],
+        [[KeyboardButton("📱 Nómerimdi jiberiw", request_contact=True)]],
         resize_keyboard=True,
         one_time_keyboard=True,
     )
@@ -1044,8 +1044,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_registered_menu(message)
     else:
         await message.reply_text(
-            "Welcome to the bot! To unlock the Mini App and student services, "
-            "please share your own phone number using the button below.",
+            "Botqa xosh keldińiz! Studentlerge kórsetiletuǵın xızmetlerden tolıq paydalanıw ushın iltimas tómendegi túymeni basıp telefonıńızdı jiberiń",
             reply_markup=registration_keyboard(),
         )
 
@@ -1059,21 +1058,21 @@ async def receive_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Telegram's request_contact button should send the sender's own contact.
     if message.contact.user_id != user.id:
         await message.reply_text(
-            "Please use the button to share your own phone number, not someone else's.",
+            "Iltimas birewdiń telefon nomerin emes ózińizdiń telefon nomerińizdi tómendegi túymeni basıw arqalı jiberiń",
             reply_markup=registration_keyboard(),
         )
         return
 
     phone = message.contact.phone_number.strip()
     if not phone:
-        await message.reply_text("Telegram did not provide a phone number. Please try again.", reply_markup=registration_keyboard())
+        await message.reply_text("Telegram arqalı telefon nomerin jiberiw múmkin bolmadı. Iltimas qaytadan urınıp kóriń.", reply_markup=registration_keyboard())
         return
 
     try:
         await asyncio.to_thread(register_user, user.id, phone)
     except Exception:
-        logger.exception("Could not register user")
-        await message.reply_text("Registration failed temporarily. Please try again later.", reply_markup=registration_keyboard())
+        logger.exception("Paydalanıwshını tastıyıqlaw múmkin bolmadı.")
+        await message.reply_text("Házirshe tastıyıqlawdıń ilajı joq. Iltimas keyinirek qaytadan urınıp kóriń.", reply_markup=registration_keyboard())
         return
 
     await send_registered_menu(message)
