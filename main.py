@@ -749,7 +749,7 @@ async def get_addresses_command(
             )
 
             ax.set_title(
-                "Student Statistics",
+                "Statistika",
                 fontsize=18,
                 fontweight="bold",
                 color="#172B4D",
@@ -759,19 +759,19 @@ async def get_addresses_command(
             legend_items = [
                 Patch(
                     facecolor="#269B62",
-                    label=f"Tastiyiqlandi: {confirmed_count:,}",
+                    label=f"Tastıyıqlandı: {confirmed_count:,}",
                 ),
                 Patch(
                     facecolor="#D9DEE7",
-                    label=f"Tastiyiqlandi emes: {unconfirmed_count:,}",
+                    label=f"Tastıyıqlanbadı: {unconfirmed_count:,}",
                 ),
                 Patch(
                     facecolor="#167A4A",
-                    label=f"Manzil: {address_entered_count:,}",
+                    label=f"Manzil kiritken: {address_entered_count:,}",
                 ),
                 Patch(
                     facecolor="#8BC9A8",
-                    label=f"Confirmed, no address: {confirmed_without_address:,}",
+                    label=f"Manzil kiritpegen: {confirmed_without_address:,}",
                 ),
             ]
 
