@@ -741,7 +741,7 @@ async def get_addresses_command(
 
             ax.text(
                 0, -0.18,
-                "Sani",
+                "Sanı",
                 ha="center",
                 va="center",
                 fontsize=12,
@@ -762,16 +762,16 @@ async def get_addresses_command(
                     label=f"Tastıyıqlandı: {confirmed_count:,}",
                 ),
                 Patch(
-                    facecolor="#D9DEE7",
-                    label=f"Tastıyıqlanbadı: {unconfirmed_count:,}",
-                ),
-                Patch(
                     facecolor="#167A4A",
-                    label=f"Manzil kiritken: {address_entered_count:,}",
+                    label=f"  ↳ Manzil kiritken: {address_entered_count:,}",
                 ),
                 Patch(
                     facecolor="#8BC9A8",
-                    label=f"Manzil kiritpegen: {confirmed_without_address:,}",
+                    label=f"  ↳ Manzil kiritpegen: {confirmed_without_address:,}",
+                ),
+                Patch(
+                    facecolor="#D9DEE7",
+                    label=f"Tastıyıqlanbadı: {unconfirmed_count:,}",
                 ),
             ]
 
