@@ -479,16 +479,19 @@ async def get_addresses_command(
                 # Calculate export statistics.
                 student_count = len(students_by_hemis_id)
 
-                confirmed_count = sum(
-                    1
-                    for student in students_by_hemis_id.values()
+                confirmed_student_ids = {
+                    hemis_id
+                    for hemis_id, student in students_by_hemis_id.items()
                     if normalize_phone(student.get("Phone", ""))
-                    and normalize_phone(student.get("Phone", "")) in registered_phones
-                )
+                       and normalize_phone(student.get("Phone", "")) in registered_phones
+                }
 
+                confirmed_count = len(confirmed_student_ids)
+
+                # Count addresses only among confirmed students.
                 address_entered_count = sum(
                     1
-                    for hemis_id in students_by_hemis_id
+                    for hemis_id in confirmed_student_ids
                     if hemis_id in students
                 )
 
@@ -657,6 +660,7 @@ async def get_addresses_command(
             f"Tastiyiqlanganlar sani: {confirmed_count}\n"
             f"Manzilin kiritkenler sani: {address_entered_count}"
         )
+
         def generate_statistics_chart():
             import matplotlib
             matplotlib.use("Agg")
@@ -664,49 +668,69 @@ async def get_addresses_command(
             import matplotlib.pyplot as plt
             from matplotlib.patches import Patch
 
-            # Students who have not confirmed their accounts.
-            unconfirmed_count = max(
-                student_count - confirmed_count, 0
+            unconfirmed_count = student_count - confirmed_count
+            confirmed_without_address = (
+                    confirmed_count - address_entered_count
             )
 
             fig, ax = plt.subplots(
-                figsize=(9, 6),
+                figsize=(10, 7),
                 facecolor="white"
             )
 
+            # Outer ring: three mutually exclusive groups.
+            outer_values = [
+                address_entered_count,
+                confirmed_without_address,
+                unconfirmed_count,
+            ]
+
+            outer_colors = [
+                "#167A4A",  # Confirmed + address
+                "#8BC9A8",  # Confirmed + no address
+                "#D9DEE7",  # Not confirmed
+            ]
+
             if student_count > 0:
-                # Two complementary portions of the total.
+                # Outer ring.
                 ax.pie(
-                    [confirmed_count, unconfirmed_count],
-                    colors=["#269B62", "#D9DEE7"],
+                    outer_values,
+                    radius=1.0,
+                    colors=outer_colors,
                     startangle=90,
                     counterclock=False,
-                    autopct=lambda pct: (
-                        f"{pct:.1f}%" if pct > 0 else ""
-                    ),
-                    pctdistance=0.78,
                     wedgeprops={
-                        "width": 0.38,
+                        "width": 0.30,
                         "edgecolor": "white",
                         "linewidth": 2,
                     },
-                    textprops={
-                        "color": "#263238",
-                        "fontsize": 11,
-                        "weight": "bold",
+                )
+
+                # Inner ring: confirmed vs not confirmed.
+                ax.pie(
+                    [confirmed_count, unconfirmed_count],
+                    radius=0.68,
+                    colors=["#269B62", "#D9DEE7"],
+                    startangle=90,
+                    counterclock=False,
+                    wedgeprops={
+                        "width": 0.30,
+                        "edgecolor": "white",
+                        "linewidth": 2,
                     },
                 )
+
             else:
                 ax.pie(
                     [1],
+                    radius=1.0,
                     colors=["#D9DEE7"],
-                    startangle=90,
-                    wedgeprops={"width": 0.38},
+                    wedgeprops={"width": 0.30},
                 )
 
-            # Total number in the center.
+            # Total student count in the center.
             ax.text(
-                0, 0.10,
+                0, 0.08,
                 f"{student_count:,}",
                 ha="center",
                 va="center",
@@ -720,31 +744,34 @@ async def get_addresses_command(
                 "Sani",
                 ha="center",
                 va="center",
-                fontsize=11,
+                fontsize=12,
                 color="#667085",
             )
 
             ax.set_title(
                 "Student Statistics",
-                fontsize=17,
+                fontsize=18,
                 fontweight="bold",
                 color="#172B4D",
-                pad=18,
+                pad=20,
             )
 
-            # Legend: exactly the three requested statistics.
             legend_items = [
-                Patch(
-                    facecolor="#269B62",
-                    label=f"Sani: {student_count:,}",
-                ),
                 Patch(
                     facecolor="#269B62",
                     label=f"Tastiyiqlandi: {confirmed_count:,}",
                 ),
                 Patch(
                     facecolor="#D9DEE7",
+                    label=f"Tastiyiqlandi emes: {unconfirmed_count:,}",
+                ),
+                Patch(
+                    facecolor="#167A4A",
                     label=f"Manzil: {address_entered_count:,}",
+                ),
+                Patch(
+                    facecolor="#8BC9A8",
+                    label=f"Confirmed, no address: {confirmed_without_address:,}",
                 ),
             ]
 
@@ -774,6 +801,7 @@ async def get_addresses_command(
             chart_output.seek(0)
 
             return chart_output
+
         chart_file = await asyncio.to_thread(
             generate_statistics_chart
         )
