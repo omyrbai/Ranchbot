@@ -657,6 +657,131 @@ async def get_addresses_command(
             f"Tastiyiqlanganlar sani: {confirmed_count}\n"
             f"Manzilin kiritkenler sani: {address_entered_count}"
         )
+        def generate_statistics_chart():
+            import matplotlib
+            matplotlib.use("Agg")
+
+            import matplotlib.pyplot as plt
+            from matplotlib.patches import Patch
+
+            # Students who have not confirmed their accounts.
+            unconfirmed_count = max(
+                student_count - confirmed_count, 0
+            )
+
+            fig, ax = plt.subplots(
+                figsize=(9, 6),
+                facecolor="white"
+            )
+
+            if student_count > 0:
+                # Two complementary portions of the total.
+                ax.pie(
+                    [confirmed_count, unconfirmed_count],
+                    colors=["#269B62", "#D9DEE7"],
+                    startangle=90,
+                    counterclock=False,
+                    autopct=lambda pct: (
+                        f"{pct:.1f}%" if pct > 0 else ""
+                    ),
+                    pctdistance=0.78,
+                    wedgeprops={
+                        "width": 0.38,
+                        "edgecolor": "white",
+                        "linewidth": 2,
+                    },
+                    textprops={
+                        "color": "#263238",
+                        "fontsize": 11,
+                        "weight": "bold",
+                    },
+                )
+            else:
+                ax.pie(
+                    [1],
+                    colors=["#D9DEE7"],
+                    startangle=90,
+                    wedgeprops={"width": 0.38},
+                )
+
+            # Total number in the center.
+            ax.text(
+                0, 0.10,
+                f"{student_count:,}",
+                ha="center",
+                va="center",
+                fontsize=25,
+                fontweight="bold",
+                color="#172B4D",
+            )
+
+            ax.text(
+                0, -0.18,
+                "Sani",
+                ha="center",
+                va="center",
+                fontsize=11,
+                color="#667085",
+            )
+
+            ax.set_title(
+                "Student Statistics",
+                fontsize=17,
+                fontweight="bold",
+                color="#172B4D",
+                pad=18,
+            )
+
+            # Legend: exactly the three requested statistics.
+            legend_items = [
+                Patch(
+                    facecolor="#269B62",
+                    label=f"Sani: {student_count:,}",
+                ),
+                Patch(
+                    facecolor="#269B62",
+                    label=f"Tastiyiqlandi: {confirmed_count:,}",
+                ),
+                Patch(
+                    facecolor="#D9DEE7",
+                    label=f"Manzil: {address_entered_count:,}",
+                ),
+            ]
+
+            ax.legend(
+                handles=legend_items,
+                loc="center left",
+                bbox_to_anchor=(1.02, 0.5),
+                frameon=False,
+                fontsize=11,
+                labelspacing=1.5,
+            )
+
+            ax.set_aspect("equal")
+            fig.tight_layout()
+
+            chart_output = io.BytesIO()
+
+            fig.savefig(
+                chart_output,
+                format="png",
+                dpi=180,
+                bbox_inches="tight",
+                facecolor="white",
+            )
+
+            plt.close(fig)
+            chart_output.seek(0)
+
+            return chart_output
+        chart_file = await asyncio.to_thread(
+            generate_statistics_chart
+        )
+
+        await message.reply_photo(
+            photo=chart_file,
+            caption="📊 Student statistics",
+        )
 
     except Exception:
         logger.exception("Could not export addresses to Excel")
