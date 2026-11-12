@@ -1018,7 +1018,7 @@ async def get_tutors_command(
             unconfirmed_pct = unconfirmed[index] / total * 100
 
             percentage_label = (
-                f"Total: {total}\n"
+                f"Jámi: {total}\n"
                 f"{entered_pct:.1f}% | "
                 f"{not_entered_pct:.1f}% | "
                 f"{unconfirmed_pct:.1f}%"
@@ -1038,14 +1038,14 @@ async def get_tutors_command(
             Patch(
                 facecolor="#167A4A",
                 label=(
-                    "Confirmed — address entered: "
+                    "Botqa kirgen - manzilin kiritken: "
                     f"{sum(address_entered):,}"
                 ),
             ),
             Patch(
                 facecolor="#8BC9A8",
                 label=(
-                    "Confirmed — address not entered: "
+                    "Botqa kirgen — manzilin kiritpegen"
                     f"{sum(address_not_entered):,}"
                 ),
             ),
@@ -1063,13 +1063,13 @@ async def get_tutors_command(
         )
 
         ax.set_title(
-            "Student Registration Statistics by Tutor",
+            "Studentlerdiń manzilin kiritiw statistikası - tyutor boyınsha",
             fontsize=14,
             fontweight="bold",
             pad=20,
         )
 
-        ax.set_ylabel("Number of students")
+        ax.set_ylabel("Student sanı")
         ax.set_xticks(x_positions)
         ax.set_xticklabels(
             tutor_names,
