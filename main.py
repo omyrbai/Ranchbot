@@ -1051,7 +1051,7 @@ async def get_tutors_command(
             ),
             Patch(
                 facecolor="#D9DEE7",
-                label=f"Not confirmed: {sum(unconfirmed):,}",
+                label=f"Botqa kirmegen: {sum(unconfirmed):,}",
             ),
         ]
 
@@ -1120,13 +1120,12 @@ async def get_tutors_command(
         await message.reply_photo(
             photo=chart_buffer,
             caption=(
-                "📊 Student registration statistics by tutor\n\n"
-                "🟢 Confirmed — address entered\n"
-                "🟩 Confirmed — address not entered\n"
-                "⬜ Not confirmed\n\n"
-                "Percentages above each bar are shown in this order:\n"
-                "Address entered | No address | Not confirmed.\n"
-                "All percentages are calculated from each tutor's total."
+                "📊 Studentlerdiń manzilin kiritiw statistikası - tyutor boyınsha\n\n"                
+                "🟩 botqa kirgen studentler jámi\n"
+                "⬜ botqa kirmegen studentler\n\n"
+                "Tóbesinde jazılǵan procent kórsetkishleri tómendegishe tártiplestirilgen:\n"
+                "Manzilin kiritken | Manzilin kiritpegen | Botqa kirmegen.\n"
+                "Barlıq procentler hár bir tyutordıń jámi student sanına qarap esaplanǵan."
             ),
         )
 
