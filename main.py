@@ -818,6 +818,325 @@ async def get_addresses_command(
             "Please check the server logs."
         )
 
+async def get_tutors_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message:
+        return
+
+    if not is_admin(update):
+        await message.reply_text(
+            "⛔ You are not authorized to access tutor statistics."
+        )
+        return
+
+    await message.reply_text("⏳ Preparing tutor statistics...")
+
+    def collect_tutor_statistics():
+        def normalize_phone(value):
+            digits = re.sub(r"\D", "", str(value or ""))
+            return digits[-9:] if len(digits) >= 9 else digits
+
+        # Load students from HEMIS login data
+        login_data = load_json(GENERATED_DIR / "login.json") or {}
+
+        students_by_hemis_id = {}
+
+        for student in login_data.values():
+            if not isinstance(student, dict):
+                continue
+
+            hemis_id = str(student.get("HemisID", "")).strip().upper()
+
+            if hemis_id:
+                students_by_hemis_id[hemis_id] = student
+
+        if not students_by_hemis_id:
+            return {}
+
+        # Get registered phone numbers and students with addresses
+        connection = get_db_connection()
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT phone
+                    FROM users
+                    WHERE phone IS NOT NULL AND phone <> ''
+                """)
+
+                registered_phones = {
+                    normalize_phone(row["phone"])
+                    for row in cursor.fetchall()
+                    if normalize_phone(row["phone"])
+                }
+
+                cursor.execute("""
+                    SELECT DISTINCT hemis_id
+                    FROM addresses
+                    WHERE is_current = 1
+                """)
+
+                students_with_addresses = {
+                    str(row["hemis_id"]).strip().upper()
+                    for row in cursor.fetchall()
+                    if row["hemis_id"]
+                }
+
+        finally:
+            connection.close()
+
+        # Calculate statistics for each tutor
+        tutor_statistics = {}
+
+        for hemis_id, student in students_by_hemis_id.items():
+            tutor_name = (
+                str(student.get("Tutor") or "").strip()
+                or "Tutor not assigned"
+            )
+
+            if tutor_name not in tutor_statistics:
+                tutor_statistics[tutor_name] = {
+                    "total": 0,
+                    "address_entered": 0,
+                    "address_not_entered": 0,
+                    "unconfirmed": 0,
+                }
+
+            stats = tutor_statistics[tutor_name]
+            stats["total"] += 1
+
+            phone = normalize_phone(student.get("Phone", ""))
+
+            if phone and phone in registered_phones:
+                if hemis_id in students_with_addresses:
+                    stats["address_entered"] += 1
+                else:
+                    stats["address_not_entered"] += 1
+            else:
+                stats["unconfirmed"] += 1
+
+        return dict(
+            sorted(
+                tutor_statistics.items(),
+                key=lambda item: item[1]["total"],
+                reverse=True,
+            )
+        )
+
+    def generate_tutor_chart(tutor_statistics):
+        import matplotlib
+        matplotlib.use("Agg")
+
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Patch
+
+        if not tutor_statistics:
+            return None
+
+        tutor_names = list(tutor_statistics.keys())
+
+        address_entered = [
+            stats["address_entered"]
+            for stats in tutor_statistics.values()
+        ]
+
+        address_not_entered = [
+            stats["address_not_entered"]
+            for stats in tutor_statistics.values()
+        ]
+
+        unconfirmed = [
+            stats["unconfirmed"]
+            for stats in tutor_statistics.values()
+        ]
+
+        totals = [
+            stats["total"]
+            for stats in tutor_statistics.values()
+        ]
+
+        x_positions = list(range(len(tutor_names)))
+
+        fig_width = max(12, len(tutor_names) * 1.2)
+        fig, ax = plt.subplots(figsize=(fig_width, 8))
+
+        # Stacked bars
+        bars_entered = ax.bar(
+            x_positions,
+            address_entered,
+            color="#167A4A",
+        )
+
+        bars_not_entered = ax.bar(
+            x_positions,
+            address_not_entered,
+            bottom=address_entered,
+            color="#8BC9A8",
+        )
+
+        confirmed_totals = [
+            entered + not_entered
+            for entered, not_entered in zip(
+                address_entered,
+                address_not_entered,
+            )
+        ]
+
+        bars_unconfirmed = ax.bar(
+            x_positions,
+            unconfirmed,
+            bottom=confirmed_totals,
+            color="#D9DEE7",
+        )
+
+        # Counts inside each segment
+        for bars in (bars_entered, bars_not_entered, bars_unconfirmed):
+            for bar in bars:
+                height = bar.get_height()
+
+                if height > 0:
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        bar.get_y() + height / 2,
+                        f"{int(height)}",
+                        ha="center",
+                        va="center",
+                        fontsize=9,
+                        fontweight="bold",
+                    )
+
+        # Total and percentage distribution above each bar
+        max_total = max(totals, default=1)
+
+        for index, total in enumerate(totals):
+            entered_pct = address_entered[index] / total * 100
+            not_entered_pct = address_not_entered[index] / total * 100
+            unconfirmed_pct = unconfirmed[index] / total * 100
+
+            percentage_label = (
+                f"Total: {total}\n"
+                f"{entered_pct:.1f}% | "
+                f"{not_entered_pct:.1f}% | "
+                f"{unconfirmed_pct:.1f}%"
+            )
+
+            ax.text(
+                x_positions[index],
+                total + max_total * 0.025,
+                percentage_label,
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+        # Legend with total counts across all tutors
+        legend_items = [
+            Patch(
+                facecolor="#167A4A",
+                label=(
+                    "Confirmed — address entered: "
+                    f"{sum(address_entered):,}"
+                ),
+            ),
+            Patch(
+                facecolor="#8BC9A8",
+                label=(
+                    "Confirmed — address not entered: "
+                    f"{sum(address_not_entered):,}"
+                ),
+            ),
+            Patch(
+                facecolor="#D9DEE7",
+                label=f"Not confirmed: {sum(unconfirmed):,}",
+            ),
+        ]
+
+        ax.legend(
+            handles=legend_items,
+            loc="upper left",
+            frameon=False,
+            fontsize=9,
+        )
+
+        ax.set_title(
+            "Student Registration Statistics by Tutor",
+            fontsize=14,
+            fontweight="bold",
+            pad=20,
+        )
+
+        ax.set_ylabel("Number of students")
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(
+            tutor_names,
+            rotation=45,
+            ha="right",
+        )
+
+        ax.set_ylim(0, max_total * 1.35)
+        ax.grid(axis="y", linestyle="--", alpha=0.25)
+        ax.set_axisbelow(True)
+
+        fig.tight_layout()
+
+        chart_buffer = io.BytesIO()
+        fig.savefig(
+            chart_buffer,
+            format="png",
+            dpi=180,
+            bbox_inches="tight",
+        )
+        chart_buffer.seek(0)
+
+        plt.close(fig)
+
+        return chart_buffer
+    try:
+        tutor_statistics = await asyncio.to_thread(
+            collect_tutor_statistics
+        )
+
+        if not tutor_statistics:
+            await message.reply_text(
+                "No tutor statistics found."
+            )
+            return
+
+        chart_buffer = await asyncio.to_thread(
+            generate_tutor_chart,
+            tutor_statistics,
+        )
+
+        if chart_buffer is None:
+            await message.reply_text(
+                "Could not generate the tutor statistics chart."
+            )
+            return
+
+        await message.reply_photo(
+            photo=chart_buffer,
+            caption=(
+                "📊 Student registration statistics by tutor\n\n"
+                "🟢 Confirmed — address entered\n"
+                "🟩 Confirmed — address not entered\n"
+                "⬜ Not confirmed\n\n"
+                "Percentages above each bar are shown in this order:\n"
+                "Address entered | No address | Not confirmed.\n"
+                "All percentages are calculated from each tutor's total."
+            ),
+        )
+
+    except Exception:
+        logger.exception("Could not generate tutor statistics")
+
+        await message.reply_text(
+            "An error occurred while preparing tutor statistics."
+        )
+
 
 async def get_address_command(
     update: Update,
@@ -1396,6 +1715,9 @@ async def lifespan(app: FastAPI):
     )
     telegram_app.add_handler(
         CommandHandler("get_address", get_address_command)
+    )
+    telegram_app.add_handler(
+        CommandHandler("get_tutors", get_tutors_command)
     )
     telegram_app.add_handler(
         MessageHandler(filters.Document.ALL, receive_admin_excel)
