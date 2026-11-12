@@ -1045,7 +1045,7 @@ async def get_tutors_command(
             Patch(
                 facecolor="#8BC9A8",
                 label=(
-                    "Botqa kirgen — manzilin kiritpegen"
+                    "Botqa kirgen — manzilin kiritpegen: "
                     f"{sum(address_not_entered):,}"
                 ),
             ),
