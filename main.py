@@ -1521,6 +1521,33 @@ async def upload_contracts_command(
     )
 
 
+async def send_messages_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message:
+        return
+
+    if not is_admin(update):
+        await message.reply_text(
+            "⛔ You are not authorized to send bulk messages."
+        )
+        return
+
+    context.user_data["awaiting_admin_upload"] = "send_messages"
+
+    await message.reply_text(
+        "📨 Please upload an Excel (.xlsx) file.\n\n"
+        "The first worksheet must contain:\n"
+        "• Column A: Telegram ID\n"
+        "• Column B: Message\n\n"
+        "Row 1 is treated as the header. "
+        "Messages will be sent starting from row 2."
+    )
+
+
 async def receive_admin_excel(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -1533,7 +1560,7 @@ async def receive_admin_excel(
     upload_type = context.user_data.get("awaiting_admin_upload")
 
     # Do not process documents unless an upload command was issued first.
-    if upload_type not in {"hemis", "contracts"}:
+    if upload_type not in {"hemis", "contracts", "send_messages"}:
         return
 
     document = message.document
@@ -1572,6 +1599,101 @@ async def receive_admin_excel(
             await message.reply_text(
                 f"❌ File exceeds the {settings.max_upload_mb} MB limit."
             )
+            return
+        if upload_type == "send_messages":
+            from openpyxl import load_workbook
+
+            workbook = load_workbook(
+                io.BytesIO(content),
+                read_only=True,
+                data_only=True,
+            )
+
+            worksheet = workbook.worksheets[0]
+
+            sent_count = 0
+            failed_count = 0
+            skipped_count = 0
+
+            try:
+                for row in worksheet.iter_rows(
+                    min_row=2,
+                    min_col=1,
+                    max_col=2,
+                    values_only=True,
+                ):
+                    raw_tgid = row[0]
+                    raw_text = row[1]
+
+                    if raw_tgid is None or raw_text is None:
+                        skipped_count += 1
+                        continue
+
+                    try:
+                        if isinstance(raw_tgid, bool):
+                            raise ValueError("Invalid Telegram ID")
+
+                        chat_id = int(raw_tgid)
+
+                        if chat_id <= 0:
+                            raise ValueError("Invalid Telegram ID")
+
+                    except (ValueError, TypeError, OverflowError):
+                        skipped_count += 1
+                        continue
+
+                    text_to_send = str(raw_text).strip()
+
+                    if not text_to_send:
+                        skipped_count += 1
+                        continue
+
+                    try:
+                        await context.bot.send_message(
+                            chat_id=chat_id,
+                            text=text_to_send,
+                        )
+                        sent_count += 1
+
+                    except Exception as exc:
+                        retry_after = getattr(exc, "retry_after", None)
+
+                        if retry_after is not None:
+                            await asyncio.sleep(float(retry_after) + 1)
+
+                            try:
+                                await context.bot.send_message(
+                                    chat_id=chat_id,
+                                    text=text_to_send,
+                                )
+                                sent_count += 1
+                            except Exception:
+                                failed_count += 1
+                                logger.exception(
+                                    "Could not send message to Telegram ID %s",
+                                    chat_id,
+                                )
+                        else:
+                            failed_count += 1
+                            logger.exception(
+                                "Could not send message to Telegram ID %s",
+                                chat_id,
+                            )
+
+                    await asyncio.sleep(0.05)
+
+            finally:
+                workbook.close()
+
+            context.user_data.pop("awaiting_admin_upload", None)
+
+            await message.reply_text(
+                "📨 Bulk messaging completed!\n\n"
+                f"✅ Successfully sent: {sent_count}\n"
+                f"❌ Failed: {failed_count}\n"
+                f"⏭ Skipped: {skipped_count}"
+            )
+
             return
 
         if upload_type == "hemis":
@@ -1850,6 +1972,9 @@ async def lifespan(app: FastAPI):
     )
     telegram_app.add_handler(
         CommandHandler("upload_contracts", upload_contracts_command)
+    )
+    telegram_app.add_handler(
+        CommandHandler("send_messages", send_messages_command)
     )
     telegram_app.add_handler(
         CommandHandler("get_addresses", get_addresses_command)
