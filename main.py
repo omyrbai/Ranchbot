@@ -818,6 +818,148 @@ async def get_addresses_command(
             "Please check the server logs."
         )
 
+async def get_users_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    message = update.effective_message
+
+    if not message:
+        return
+
+    if not is_admin(update):
+        await message.reply_text(
+            "⛔ You are not authorized to access user records."
+        )
+        return
+
+    await message.reply_text("⏳ Preparing the registered users Excel file...")
+
+    def generate_users_excel():
+        from openpyxl import Workbook
+
+        def normalize_phone(value):
+            digits = re.sub(r"\D", "", str(value or ""))
+            return digits[-9:] if len(digits) >= 9 else digits
+
+        # Load HEMIS student records.
+        login_data = load_json(GENERATED_DIR / "login.json") or {}
+
+        hemis_by_phone = {}
+        hemis_fields = []
+
+        for student in login_data.values():
+            if not isinstance(student, dict):
+                continue
+
+            phone = normalize_phone(
+                student.get("Phone", student.get("phone", ""))
+            )
+
+            if not phone:
+                continue
+
+            hemis_by_phone.setdefault(phone, []).append(student)
+
+            for field in student:
+                if field not in hemis_fields:
+                    hemis_fields.append(field)
+
+        # Retrieve every registered user and all database columns.
+        connection = get_db_connection()
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT * FROM users ORDER BY user_id")
+                users = cursor.fetchall()
+                user_fields = [column[0] for column in cursor.description]
+        finally:
+            connection.close()
+
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Registered Users"
+
+        headers = (
+            [f"user_{field}" for field in user_fields]
+            + ["hemis_match_count"]
+            + [f"hemis_{field}" for field in hemis_fields]
+        )
+
+        worksheet.append(headers)
+
+        matched_users = 0
+        exported_rows = 0
+
+        for user in users:
+            phone = normalize_phone(user.get("phone"))
+            matches = hemis_by_phone.get(phone, []) if phone else []
+
+            if matches:
+                matched_users += 1
+            else:
+                matches = [{}]
+
+            for student in matches:
+                row = (
+                    [user.get(field, "") for field in user_fields]
+                    + [len(hemis_by_phone.get(phone, [])) if phone else 0]
+                    + [student.get(field, "") for field in hemis_fields]
+                )
+
+                worksheet.append(row)
+                exported_rows += 1
+
+        worksheet.freeze_panes = "A2"
+        worksheet.auto_filter.ref = worksheet.dimensions
+
+        for column in worksheet.columns:
+            max_length = max(
+                (
+                    len(str(cell.value))
+                    if cell.value is not None else 0
+                )
+                for cell in column
+            )
+
+            worksheet.column_dimensions[
+                column[0].column_letter
+            ].width = min(max_length + 2, 40)
+
+        output = io.BytesIO()
+        workbook.save(output)
+        output.seek(0)
+
+        return output, len(users), matched_users, exported_rows
+
+    try:
+        (
+            excel_file,
+            user_count,
+            matched_count,
+            exported_rows,
+        ) = await asyncio.to_thread(generate_users_excel)
+
+        await message.reply_document(
+            document=excel_file,
+            filename="registered_users.xlsx",
+            caption="📋 Registered users with matching HEMIS information",
+        )
+
+        await message.reply_text(
+            f"👥 Registered users: {user_count}\n"
+            f"🎓 Users matched with HEMIS: {matched_count}\n"
+            f"📊 Excel rows exported: {exported_rows}"
+        )
+
+    except Exception:
+        logger.exception("Could not export registered users")
+
+        await message.reply_text(
+            "❌ Failed to generate the users Excel file. "
+            "Please check the server logs."
+        )
+
 async def get_tutors_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -1717,6 +1859,9 @@ async def lifespan(app: FastAPI):
     )
     telegram_app.add_handler(
         CommandHandler("get_tutors", get_tutors_command)
+    )
+    telegram_app.add_handler(
+        CommandHandler("get_users", get_users_command)
     )
     telegram_app.add_handler(
         MessageHandler(filters.Document.ALL, receive_admin_excel)
